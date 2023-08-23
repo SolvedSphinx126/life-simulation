@@ -14,14 +14,3 @@ const render = () => {
 
 render()
 
-window.addEventListener('resize', () => {
-    const parentWidth = document.querySelector('.parent-container').clientWidth;
-    const parentHeight = document.querySelector('.parent-container').clientHeight;
-  
-    const container = document.querySelector('.container');
-    let size = Math.min(parentWidth, parentHeight - 40)
-    container.style.width = (size) + 'px'; // Adjust the factor as needed
-    container.style.height = (size) + 'px'; // Adjust the factor as needed
-});
-
-window.dispatchEvent(new Event('resize'));
