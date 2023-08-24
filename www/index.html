@@ -28,7 +28,7 @@
       }
       .sidebar {
         height: 100%;
-        background-color: aqua;
+        background-color: #BBBBBB;
         width: 200px;
       }
       h1 {
@@ -42,6 +42,15 @@
         min-width: 0;
         overflow: hidden
       }
+      #speedButtons {
+        flex-direction: row;
+        justify-content: space-around;
+        align-items:flex-end;
+      }
+      #left {
+        flex-direction: column;
+        justify-content: flex-end;
+      }
     </style>
     <meta charset="utf-8">
     <title>Hello wasm-pack!</title>
@@ -49,14 +58,24 @@
   <body>
     <div id="row" class="flex">
       <div class="sidebar" style="align-self: flex-start;">
-      
+        <div id="left" class="flex">
+          <div style="height: 50px;"></div>
+          <button>Upload XML File</button>
+          <button>Generate Report</button>
+          <div style="height: 300px;">Leaderboard</div>
+        </div>
       </div>
       <div id="column" class="flex">
         <h1 id="header" >Life Simulation Map</h1>
         <canvas id="game-canvas"></canvas>
       </div>
-      <div class="sidebar" style="align-self: flex-end;">
-        
+      <div class="sidebar">
+        <div style="height: 50px;"></div>
+        <div class="flex" id="speedButtons">
+          <button>1x</button>
+          <button>50x</button>
+          <button>100x</button>
+        </div>
       </div>
     </div>
     <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>

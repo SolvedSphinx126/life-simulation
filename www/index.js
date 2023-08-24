@@ -4,7 +4,7 @@ var canvas = document.getElementById("game-canvas");
 var ctx = canvas.getContext("2d");
 
 const drawBg = () => {
-    ctx.fillStyle = "#555555";
+    ctx.fillStyle = "#111111";
     ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
