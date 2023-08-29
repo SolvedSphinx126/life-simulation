@@ -48,8 +48,10 @@
         align-items:flex-end;
       }
       #left {
+        display: flex;
         flex-direction: column;
         justify-content: flex-end;
+        gap: 20px;
       }
     </style>
     <meta charset="utf-8">
@@ -58,11 +60,11 @@
   <body>
     <div id="row" class="flex">
       <div class="sidebar" style="align-self: flex-start;">
+        <div style="height: 50px;"></div>
         <div id="left" class="flex">
-          <div style="height: 50px;"></div>
           <button>Upload XML File</button>
           <button>Generate Report</button>
-          <div style="height: 300px;">Leaderboard</div>
+          <div style="height: 300px; background-color: #AAAAAA; padding: 20px;">Leaderboard</div>
         </div>
       </div>
       <div id="column" class="flex">
