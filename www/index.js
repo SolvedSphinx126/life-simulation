@@ -28,6 +28,5 @@ fileInputElement.addEventListener("change", e => fileInputElement.files[0].text(
     var grazers = simulation.childNodes[2];
     var predators = simulation.childNodes[3];
     var obstacles = simulation.childNodes[4];
-    plants.
     console.log(plants);
 }));
