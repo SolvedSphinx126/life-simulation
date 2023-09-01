@@ -1,5 +1,5 @@
 mod utils;
-mod entity;
+mod simulation;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
