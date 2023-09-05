@@ -226,17 +226,48 @@ pub mod simulation {
         fn get_entity(&self) -> &Entity {
             &self.entity
         }
-        fn get_diameter(&self) -> u32 {
-            self.diameter
+        fn get_diameter(&self) -> &u32 {
+            &self.diameter
         }
+        fn set_diameter(&mut self, new_diameter: u32){
+            self.diameter = new_diameter
+        }
+
     }
 
     struct Plant {
-        id: u32,
-        x: i32,
-        y: i32,
+        entity: Entity,
         diameter: u32,
-        state: i32, // might need more complexity
+        is_max_size: bool,
         
+    }
+    impl Plant{
+        fn get_entity(&self) -> &Entity{
+            &self.entity
+        }
+        fn get_diameter(&self) -> &u32 {
+            &self.diameter
+        }
+        // This function returns if the plant is max size
+        // if bool flag is set then return true
+        // else check if it has reached max size by comapring diameter to map max size then update plants bool flag
+        // else return false not max size
+        fn is_max_size(&mut self, map: &Map)-> bool{
+            if self.is_max_size == true{
+                return self.is_max_size;
+            }
+            else if self.get_diameter() == map.get_max_size(){
+                self.is_max_size == true;
+                return self.is_max_size;
+            }
+            else{
+                return false;
+            }
+        }
+        fn set_diameter(&mut self, new_diameter: u32){
+            self.diameter = new_diameter;
+        }
+        //need actual seeding functions
+
     }
 }
