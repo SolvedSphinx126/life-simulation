@@ -222,6 +222,16 @@ pub mod simulation {
         diameter: u32,
     }
 
+    struct Mover{
+        entity: Entity,
+        state: i32, // needs to be enum of state
+        velocity_x: i32,
+        velocity_y: i32,
+        orientation: f32,
+        target_x: i32,
+        target_y: i32,
+    }
+
     impl Rock {
         fn get_entity(&self) -> &Entity {
             &self.entity
