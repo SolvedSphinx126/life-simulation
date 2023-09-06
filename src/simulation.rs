@@ -352,9 +352,8 @@ pub mod simulation {
         family: Vec<i32>, //vector of family ids
         time_family: f32, // time after mating that predator cares about family
         is_pregnant: bool,
-        time_til_birth: f32,
-        children: i32, //number of kids decided at mate time or could be a vector of predators...
-        mate_gen_seq: String, // need to make get/sets. Need to decide if we store mate gen seq then decide on children gen_seq at birth or at conception
+        time_til_birth: f32, //countdown of gestation period
+        mate_gen_seq: String, // mates gennetic sequence 
     }
     impl Predator{
         fn get_mover(&self) -> &Mover{
@@ -366,6 +365,7 @@ pub mod simulation {
         fn get_family(&self) -> &Vec<i32>{
             &self.family
         }
+        
         fn get_time_family(&self) -> &f32{
             &self.time_family
         }
@@ -375,8 +375,8 @@ pub mod simulation {
         fn get_time_til_birth(&self) -> &f32{
             &self.time_til_birth
         }
-        fn get_children(&self) -> &i32{
-            &self.children
+        fn get_mate_seq(&self) -> &String{
+            &self.mate_gen_seq
         }
         //add decision here
         fn set_gen_seq(&mut self, new_gen_seq: String){
@@ -385,18 +385,22 @@ pub mod simulation {
         fn set_familiy(&mut self, new_family: Vec<i32>){ 
             self.family = new_family;
         }
+        fn add_family(&mut self, new_fam_id: i32){
+            self.family.push(new_fam_id);
+        }
         fn set_time_family(&mut self, new_time_family: f32){
-            self.time_family = new_time_family
+            self.time_family = new_time_family;
         }
         fn set_is_pregnant(&mut self, is_pregnant: bool){
-            self.is_pregnant = is_pregnant
+            self.is_pregnant = is_pregnant;
         }
         fn set_time_til_birth(&mut self, new_time_til_birth: f32){
-            self.time_til_birth = new_time_til_birth
+            self.time_til_birth = new_time_til_birth;
         }
-        fn set_children(&mut self, new_children: i32){
-            self.children = new_children
+        fn set_mate_gen_seq(&mut self, new_mate_gen_seq: String){
+            self.mate_gen_seq = new_mate_gen_seq;
         }
+
 
     }
 }
