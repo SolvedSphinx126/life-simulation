@@ -331,4 +331,72 @@ pub mod simulation {
         //need actual seeding functions
 
     }
+
+    struct Grazer{
+        mover: Mover,
+        min_in_loc: i32, //minutes in cur location without moving max is 10 once at 10 need to move
+
+    }
+    impl Grazer{
+        fn get_min_in_loc(&self) -> &i32{
+            &self.min_in_loc
+        }
+        fn set_min_in_loc(&mut self, new_min_in_loc: i32){
+            self.min_in_loc = new_min_in_loc
+        }
+    }
+
+    struct Predator{
+        mover: Mover,
+        gen_seq: String,
+        family: Vec<i32>, //vector of family ids
+        time_family: f32, // time after mating that predator cares about family
+        is_pregnant: bool,
+        time_til_birth: f32,
+        children: i32, //number of kids decided at mate time or could be a vector of predators...
+        mate_gen_seq: String, // need to make get/sets. Need to decide if we store mate gen seq then decide on children gen_seq at birth or at conception
+    }
+    impl Predator{
+        fn get_mover(&self) -> &Mover{
+            &self.mover
+        }
+        fn get_gen_seq(&self) -> &String{
+            &self.gen_seq
+        }
+        fn get_family(&self) -> &Vec<i32>{
+            &self.family
+        }
+        fn get_time_family(&self) -> &f32{
+            &self.time_family
+        }
+        fn get_is_pregnant(&self) -> &bool{
+            &self.is_pregnant
+        }
+        fn get_time_til_birth(&self) -> &f32{
+            &self.time_til_birth
+        }
+        fn get_children(&self) -> &i32{
+            &self.children
+        }
+        //add decision here
+        fn set_gen_seq(&mut self, new_gen_seq: String){
+            self.gen_seq = new_gen_seq;
+        }
+        fn set_familiy(&mut self, new_family: Vec<i32>){ 
+            self.family = new_family;
+        }
+        fn set_time_family(&mut self, new_time_family: f32){
+            self.time_family = new_time_family
+        }
+        fn set_is_pregnant(&mut self, is_pregnant: bool){
+            self.is_pregnant = is_pregnant
+        }
+        fn set_time_til_birth(&mut self, new_time_til_birth: f32){
+            self.time_til_birth = new_time_til_birth
+        }
+        fn set_children(&mut self, new_children: i32){
+            self.children = new_children
+        }
+
+    }
 }
