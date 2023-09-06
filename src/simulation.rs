@@ -230,6 +230,57 @@ pub mod simulation {
         orientation: f32,
         target_x: i32,
         target_y: i32,
+        energy: i32,
+    }
+
+    impl Mover{
+        fn get_entity(&self) -> &Entity {
+            &self.entity
+        }
+        fn get_state(&self) -> &i32{//change to enum in future
+            &self.state
+        }
+        fn get_velocity_x(&self) -> &i32{
+            &self.velocity_x
+        }
+        fn get_velocity_y(&self) -> &i32{
+            &self.velocity_y
+        }
+        fn get_orientation(&self) -> &f32{
+            &self.orientation
+        }
+        fn get_target_x(&self) -> &i32{
+            &self.target_x
+        }
+        fn get_target_y(&self) -> &i32{
+            &self.target_y
+        }
+        fn get_energy(&self) -> &i32{
+            &self.energy
+        }
+        fn set_state(&mut self, new_state: i32){//need to be enum here once we do that
+            self.state = new_state;
+        }
+        fn set_velocity_x(&mut self, new_velocity_x: i32){
+            self.velocity_x = new_velocity_x;
+        }
+        fn set_velocity_y(&mut self, new_velocity_y: i32){
+            self.velocity_y = new_velocity_y;
+        }
+        fn set_orientation(&mut self, new_orientation: f32){
+            self.orientation = new_orientation;
+        }
+        fn set_target_x(&mut self, new_target_x: i32){
+            self.target_x = new_target_x;
+        }
+        fn set_target_y(&mut self, new_target_y: i32){
+            self.target_y = new_target_y;
+        }
+        fn set_energy(&mut self, new_energy: i32)
+        {
+            self.energy = new_energy;
+        }
+
     }
 
     impl Rock {
