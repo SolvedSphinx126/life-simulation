@@ -350,10 +350,6 @@ impl Plant {
     fn get_diameter(&self) -> &u32 {
         &self.diameter
     }
-    // This function returns if the plant is max size
-    // if bool flag is set then return true
-    // else check if it has reached max size by comapring diameter to map max size then update plants bool flag
-    // else return false not max size
     fn is_max_size(&mut self, map: &Map) -> bool {
         self.diameter >= map.get_max_size()
     }
@@ -383,7 +379,6 @@ impl Predator {
     fn get_family(&self) -> &Vec<i32> {
         &self.family
     }
-
     fn get_time_family(&self) -> &f32 {
         &self.time_family
     }
@@ -396,7 +391,6 @@ impl Predator {
     fn get_mate_seq(&self) -> &String {
         &self.mate_gen_seq
     }
-    //add decision here
     fn set_gen_seq(&mut self, new_gen_seq: String) {
         self.gen_seq = new_gen_seq;
     }
