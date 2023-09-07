@@ -44,7 +44,9 @@ pub struct Map {
     predator_offspring_energy: u32,
 
     rocks: Vec<Rock>,
-    predators: Vec<Grazer>,
+    predators: Vec<Predator>,
+    grazers: Vec<Grazer>,
+    plants: Vec<Plant>,
 }
 
 #[wasm_bindgen]
@@ -62,12 +64,27 @@ impl Map {
     pub fn get_height(&self) -> u32 {
         self.height
     }
+    pub fn get_rocks(&self) -> Vec<Rock>{
+        self.rocks
+    }
+    pub fn get_grazers(&self) -> Vec<Grazer>{
+        self.grazers
+    }
+    pub fn get_plants(&self) -> Vec<Plant>{
+        self.plants
+    }
+    pub fn get_predators(&self) -> Vec<Predator>{
+        self.predators
+    }
+    
     pub fn set_width(&mut self, new_width: u32) {
         self.width = new_width;
     }
     pub fn set_height(&mut self, new_height: u32) {
         self.height = new_height;
     }
+    
+
 
     //plants
     pub fn get_init_plant_count(&self) -> u32 {
@@ -106,6 +123,7 @@ impl Map {
     pub fn set_seed_viability(&mut self, new_seed_viability: f32) {
         self.seed_viability = new_seed_viability;
     }
+    
 
     //Grazers
     pub fn get_init_grazer_count(&self) -> u32 {
@@ -206,9 +224,9 @@ impl Map {
 }
 
 trait BaseEntity {
-    fn get_id(&self) -> &u32;
-    fn get_x(&self) -> &i32;
-    fn get_y(&self) -> &i32;
+    fn get_id(&self) -> u32;
+    fn get_x(&self) -> i32;
+    fn get_y(&self) -> i32;
     fn set_id(&mut self, _: u32);
     fn set_x(&mut self, _: i32);
     fn set_y(&mut self, _: i32);
@@ -221,16 +239,16 @@ pub struct Entity {
 }
 
 impl BaseEntity for Entity {
-    fn get_id(&self) -> &u32 {
-        &self.id
+    fn get_id(&self) ->u32 {
+        self.id
     }
 
-    fn get_x(&self) -> &i32 {
-        &self.x
+    fn get_x(&self) -> i32 {
+        self.x
     }
 
-    fn get_y(&self) -> &i32 {
-        &self.y
+    fn get_y(&self) -> i32 {
+        self.y
     }
 
     fn set_id(&mut self, new_id: u32) {
@@ -258,30 +276,30 @@ pub struct Mover {
 }
 
 impl Mover {
-    fn get_entity(&self) -> &Entity {
-        &self.entity
+    fn get_entity(&self) -> Entity {
+        self.entity
     }
-    fn get_state(&self) -> &i32 {
+    fn get_state(&self) -> i32 {
         //change to enum in future
-        &self.state
+        self.state
     }
-    fn get_velocity_x(&self) -> &i32 {
-        &self.velocity_x
+    fn get_velocity_x(&self) -> i32 {
+        self.velocity_x
     }
-    fn get_velocity_y(&self) -> &i32 {
+    fn get_velocity_y(self) -> i32 {
         &self.velocity_y
     }
-    fn get_orientation(&self) -> &f32 {
-        &self.orientation
+    fn get_orientation(&self) -> f32 {
+        self.orientation
     }
-    fn get_target_x(&self) -> &i32 {
-        &self.target_x
+    fn get_target_x(&self) -> i32 {
+        self.target_x
     }
-    fn get_target_y(&self) -> &i32 {
-        &self.target_y
+    fn get_target_y(&self) -> i32 {
+        self.target_y
     }
-    fn get_energy(&self) -> &i32 {
-        &self.energy
+    fn get_energy(&self) -> i32 {
+        self.energy
     }
     fn set_state(&mut self, new_state: i32) {
         //need to be enum here once we do that
@@ -307,17 +325,20 @@ impl Mover {
     }
 }
 
+
+#[wasm_bindgen]
 pub struct Rock {
     entity: Entity,
     diameter: u32,
 }
 
+
 impl Rock {
-    fn get_entity(&self) -> &Entity {
-        &self.entity
+    fn get_entity(&self) -> Entity {
+        self.entity
     }
-    fn get_diameter(&self) -> &u32 {
-        &self.diameter
+    fn get_diameter(&self) -> u32 {
+        self.diameter
     }
     fn set_diameter(&mut self, new_diameter: u32) {
         self.diameter = new_diameter
@@ -330,8 +351,8 @@ pub struct Grazer {
 }
 
 impl Grazer {
-    fn get_min_in_loc(&self) -> &i32 {
-        &self.min_in_loc
+    fn get_min_in_loc(&self) -> i32 {
+        self.min_in_loc
     }
     fn set_min_in_loc(&mut self, new_min_in_loc: i32) {
         self.min_in_loc = new_min_in_loc
@@ -344,11 +365,11 @@ pub struct Plant {
 }
 
 impl Plant {
-    fn get_entity(&self) -> &Entity {
-        &self.entity
+    fn get_entity(&self) -> Entity {
+        self.entity
     }
-    fn get_diameter(&self) -> &u32 {
-        &self.diameter
+    fn get_diameter(&self) -> u32 {
+        self.diameter
     }
     fn is_max_size(&mut self, map: &Map) -> bool {
         self.diameter >= map.get_max_size()
@@ -370,26 +391,26 @@ struct Predator {
 }
 
 impl Predator {
-    fn get_mover(&self) -> &Mover {
-        &self.mover
+    fn get_mover(&self) -> Mover {
+        self.mover
     }
-    fn get_gen_seq(&self) -> &String {
-        &self.gen_seq
+    fn get_gen_seq(&self) -> String {
+        self.gen_seq
     }
-    fn get_family(&self) -> &Vec<i32> {
-        &self.family
+    fn get_family(&self) -> Vec<i32> {
+        self.family
     }
-    fn get_time_family(&self) -> &f32 {
-        &self.time_family
+    fn get_time_family(&self) -> f32 {
+        self.time_family
     }
-    fn get_is_pregnant(&self) -> &bool {
-        &self.is_pregnant
+    fn get_is_pregnant(&self) -> bool {
+        self.is_pregnant
     }
-    fn get_time_til_birth(&self) -> &u64 {
-        &self.time_til_birth
+    fn get_time_til_birth(&self) -> u64 {
+        self.time_til_birth
     }
-    fn get_mate_seq(&self) -> &String {
-        &self.mate_gen_seq
+    fn get_mate_seq(&self) -> String {
+        self.mate_gen_seq
     }
     fn set_gen_seq(&mut self, new_gen_seq: String) {
         self.gen_seq = new_gen_seq;
