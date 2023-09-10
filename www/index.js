@@ -14,10 +14,15 @@ const render = () => {
 
 const map = Map.new();
 
+var r = map.add_rock(1,10,15,7,9);
+map.add_rock(2,10,15,7,8);
+
 map.set_width(10);
-console.log(map.get_width())
-map.set_width(11);
-console.log(map.get_width())
+map.set_height(10);
+
+for(var rock of map.get_rocks()) {
+    console.log(rock.get_height());
+}
 
 render()
 
