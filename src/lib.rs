@@ -386,19 +386,19 @@ impl Rock {
 #[wasm_bindgen]
 pub struct Grazer {
     mover: Mover,
-    min_in_loc: i32, //minutes in cur location without moving max is 10 once at 10 need to move
+    ticks_in_loc: i32, //minutes in cur location without moving max is 10 once at 10 need to move
 }
 
 #[wasm_bindgen]
 impl Grazer {
     fn new(new_id: u32, new_x:i32, new_y: i32, new_state: i32, new_velocity_x: i32, new_velocity_y: i32, new_orientation: f32, new_target_x: i32,new_target_y: i32, new_energy: i32, new_min_in_loc: i32) -> Grazer {
-        Grazer { mover: Mover::new(new_id, new_x, new_y, new_state, new_velocity_x, new_velocity_y, new_orientation, new_target_x, new_target_y, new_energy), min_in_loc: new_min_in_loc }
+        Grazer { mover: Mover::new(new_id, new_x, new_y, new_state, new_velocity_x, new_velocity_y, new_orientation, new_target_x, new_target_y, new_energy), ticks_in_loc: new_min_in_loc }
     }
-    pub fn get_min_in_loc(&self) -> i32 {
-        self.min_in_loc
+    pub fn get_ticks_in_loc(&self) -> i32 {
+        self.ticks_in_loc
     }
-    fn set_min_in_loc(&mut self, new_min_in_loc: i32) {
-        self.min_in_loc = new_min_in_loc;
+    fn set_ticks_in_loc(&mut self, new_min_in_loc: i32) {
+        self.ticks_in_loc = new_min_in_loc;
     }
 }
 
@@ -434,14 +434,14 @@ pub struct Predator {
     family: Vec<i32>, //vector of family ids
     time_family: f32, // time after mating that predator cares about family
     is_pregnant: bool,
-    time_til_birth: u64,  // the first tick where the gestation period is over
+    ticks_til_birth: u64,  // the first tick where the gestation period is over
     mate_gen_seq: String, // mates gennetic sequence
 }
 
 #[wasm_bindgen]
 impl Predator {
     fn new(new_id: u32, new_x:i32, new_y: i32, new_state: i32, new_velocity_x: i32, new_velocity_y: i32, new_orientation: f32, new_target_x: i32,new_target_y: i32, new_energy: i32, new_min_in_loc: i32, new_gen_seq: String, new_family: Vec<i32>, new_time_family: f32, new_is_pregnant: bool, new_time_til_birth: u64, new_mate_gen_seq: String) -> Predator {
-        Predator { mover: Mover::new(new_id, new_x, new_y, new_state, new_velocity_x, new_velocity_y, new_orientation, new_target_x, new_target_y, new_energy), gen_seq: new_gen_seq, family: new_family, time_family: new_time_family, is_pregnant: new_is_pregnant, time_til_birth: new_time_til_birth, mate_gen_seq: new_mate_gen_seq }
+        Predator { mover: Mover::new(new_id, new_x, new_y, new_state, new_velocity_x, new_velocity_y, new_orientation, new_target_x, new_target_y, new_energy), gen_seq: new_gen_seq, family: new_family, time_family: new_time_family, is_pregnant: new_is_pregnant, ticks_til_birth: new_time_til_birth, mate_gen_seq: new_mate_gen_seq }
     }
     pub fn get_gen_seq(&self) ->  String {
         self.gen_seq.clone()
@@ -455,8 +455,8 @@ impl Predator {
     pub fn get_is_pregnant(&self) -> bool {
         self.is_pregnant
     }
-    pub fn get_time_til_birth(&self) -> u64 {
-        self.time_til_birth
+    pub fn get_ticks_til_birth(&self) -> u64 {
+        self.ticks_til_birth
     }
     pub fn get_mate_seq(&self) -> String {
         self.mate_gen_seq.clone()
@@ -476,8 +476,8 @@ impl Predator {
     fn set_is_pregnant(&mut self, is_pregnant: bool) {
         self.is_pregnant = is_pregnant;
     }
-    fn set_time_til_birth(&mut self, map: Map, new_time_til_birth: u64) {
-        self.time_til_birth = new_time_til_birth + Map::get_current_tick(&map);
+    fn set_ticks_til_birth(&mut self, map: Map, new_time_til_birth: u64) {
+        self.ticks_til_birth = new_time_til_birth + Map::get_current_tick(&map);
     }
     fn set_mate_gen_seq(&mut self, new_mate_gen_seq: String) {
         self.mate_gen_seq = new_mate_gen_seq;
