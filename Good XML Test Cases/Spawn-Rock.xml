@@ -1,0 +1,29 @@
+<LIFE_SIMULATION>
+	<LAND_BOUNDS>
+		<WIDTH>
+			500.0
+		</WIDTH>
+		<HEIGHT>
+			500.0
+		</HEIGHT>
+	</LAND_BOUNDS>
+	<OBSTACLES>
+		<INITIAL_OBSTACLE_COUNT>
+			1
+		</INITIAL_OBSTACLE_COUNT>
+		<OBSTACLE>
+			<X_POS>
+				250
+			</X_POS>
+			<Y_POS>
+				250
+			</Y_POS>
+			<O_DIAMETER>
+				25			
+			</O_DIAMETER>			
+			<O_HEIGHT>
+				15
+			</O_HEIGHT>
+		</OBSTACLE>
+	</OBSTACLES>
+</LIFE_SIMULATION>
