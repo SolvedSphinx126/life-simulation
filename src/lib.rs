@@ -4,7 +4,7 @@
 extern "C" {
     fn alert(s: &str);
 }
-
+use rand::Rng;
 //use crate::grazer::grazer::Grazer;
 //use crate::plant::plant::Plant;
 //use crate::rock::rock::Rock;
@@ -83,8 +83,8 @@ impl Map {
         self.rocks.push(new_rock);
         new_rock
     }
-    pub fn add_plant(&mut self, id: u32, x: i32, y: i32, diameter: u32){
-        let new_plant: Plant = Plant::new(id, x, y, diameter);
+    pub fn add_plant(&mut self, id: u32, x: i32, y: i32, diameter: u32, new_next_seed_tick: u64, new_grow_tick: u64){
+        let new_plant: Plant = Plant::new(id, x, y, diameter, new_next_seed_tick, new_grow_tick);
         self.plants.push(new_plant);
     }
     pub fn add_grazer(&mut self,new_id: u32, new_x:i32, new_y: i32, new_state: i32, new_velocity_x: i32, new_velocity_y: i32, new_orientation: f32, new_target_x: i32,new_target_y: i32, new_energy: i32, new_min_in_loc: i32){
@@ -407,12 +407,14 @@ impl Grazer {
 pub struct Plant {
     entity: Entity,
     diameter: u32,
+    next_seed_tick: u64,
+    grow_tick: u64,
 }
 
 #[wasm_bindgen]
 impl Plant {
-    fn new(new_id: u32, new_x: i32, new_y: i32, new_diameter: u32) -> Plant {
-        Plant { entity: Entity::new(new_id, new_x, new_y), diameter: new_diameter}
+    fn new(new_id: u32, new_x: i32, new_y: i32, new_diameter: u32, new_next_seed_tick: u64, new_grow_tick: u64) -> Plant {
+        Plant { entity: Entity::new(new_id, new_x, new_y), diameter: new_diameter, next_seed_tick: new_next_seed_tick, grow_tick: new_grow_tick}
     }
     pub fn get_diameter(&self) -> u32 {
         self.diameter
@@ -420,10 +422,39 @@ impl Plant {
     fn is_max_size(&mut self, map: &Map) -> bool {
         self.diameter >= map.get_max_size()
     }
+    fn get_next_seed_tick(&self) -> u64{
+        self.next_seed_tick
+    }
+    fn get_grow_tick(&self) -> u64{
+        self.grow_tick
+    }
     fn set_diameter(&mut self, new_diameter: u32) {
         self.diameter = new_diameter;
     }
+    fn set_next_seed_tick(&mut self, new_tick: u64){
+        self.next_seed_tick = new_tick
+    }
+    // make function that just increments by 1hrs worth of ticks
+    //not includeing set grow tick as this only matters to new plant and never needs to be used again
+
     //need actual seeding functions
+    fn grow(&mut self, growth_add: u32){
+        //where growth add is growth rate * max size (this should be calculated in map and passed to this function)
+        self.diameter = self.diameter + growth_add;
+    }
+    fn seed() -> Vec<Plant>{
+        //need tick to second ratio
+        // seeds start growing after 10 seconds so should add delay_growth: till specific tick to plant
+        //need to add next_seed_tick as well 1 hour between seed events
+        // need rng for seed count 0-Max seed count
+        // rng for seed viability
+        // need rng for seed distance (calculating initial pos)
+        // create new plant object and add to a vector
+        //return vector
+        let mut new_plants = Vec::new();
+        return new_plants;
+    }
+
 }
 
 #[derive(Clone)]
