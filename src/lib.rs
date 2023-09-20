@@ -59,6 +59,7 @@ impl Map {
         self.current_tick
     }
 
+
     pub fn get_width(&self) -> u32 {
         self.width
     }
@@ -109,8 +110,8 @@ impl Map {
         let new_grazer = Grazer::new(new_id, new_x, new_y, new_gen, new_state, new_velocity_x, new_velocity_y, new_orientation, new_target_x, new_target_y, new_energy, new_min_in_loc);
         self.grazers.push(new_grazer);
     }
-    pub fn add_predator(&mut self, new_id: u32, new_x:f32, new_y: f32, new_gen: u32, new_state: i32, new_velocity_x: f32, new_velocity_y: f32, new_orientation: f32, new_target_x: f32,new_target_y: f32, new_energy: i32, new_min_in_loc: i32, new_gen_seq: String, new_family: Vec<i32>, new_time_family: f32, new_is_pregnant: bool, new_time_til_birth: u64, new_mate_gen_seq: String){
-        let new_predator = Predator::new(new_id, new_x, new_y, new_gen, new_state, new_velocity_x, new_velocity_y, new_orientation, new_target_x, new_target_y, new_energy, new_min_in_loc, new_gen_seq, new_family, new_time_family, new_is_pregnant, new_time_til_birth, new_mate_gen_seq);
+    pub fn add_predator(&mut self, new_id: u32, new_x:f32, new_y: f32, new_gen: u32, new_state: i32, new_velocity_x: f32, new_velocity_y: f32, new_orientation: f32, new_target_x: f32,new_target_y: f32, new_energy: i32, new_gen_seq: String, new_family: Vec<i32>, new_time_family: u64, new_is_pregnant: bool, new_time_til_birth: u64, new_mate_gen_seq: String){
+        let new_predator = Predator::new(new_id, new_x, new_y, new_gen, new_state, new_velocity_x, new_velocity_y, new_orientation, new_target_x, new_target_y, new_energy,  new_gen_seq, new_family, new_time_family, new_is_pregnant, new_time_til_birth, new_mate_gen_seq);
         self.predators.push(new_predator)
     }
     
@@ -468,7 +469,7 @@ impl Plant {
         }
         self.diameter = self.diameter + growth_add;
     }
-    fn seed(&mut self, map: &Map) -> Vec<Plant>{
+    fn seed(&self, map: &mut Map) -> Vec<Plant>{
         //need tick to second ratio 1:1
         // seeds start growing after 10 seconds so should add delay_growth: till specific tick to plant
         //need to add next_seed_tick as well 1 hour between seed events
@@ -494,8 +495,9 @@ impl Plant {
             }
             i = i + 1;
         }
-        self.set_next_seed_tick(60);
+        
         return new_plants;
+
     }
 
 }
@@ -506,7 +508,7 @@ pub struct Predator {
     mover: Mover,
     gen_seq: String,
     family: Vec<i32>, //vector of family ids
-    time_family: f32, // time after mating that predator cares about family
+    time_family: u64, // time after mating that predator cares about family
     is_pregnant: bool,
     ticks_til_birth: u64,  // the first tick where the gestation period is over
     mate_gen_seq: String, // mates gennetic sequence
@@ -514,7 +516,7 @@ pub struct Predator {
 
 #[wasm_bindgen]
 impl Predator {
-    fn new(new_id: u32, new_x:f32, new_y: f32, new_gen: u32, new_state: i32, new_velocity_x: f32, new_velocity_y: f32, new_orientation: f32, new_target_x: f32,new_target_y: f32, new_energy: i32, new_min_in_loc: i32, new_gen_seq: String, new_family: Vec<i32>, new_time_family: f32, new_is_pregnant: bool, new_time_til_birth: u64, new_mate_gen_seq: String) -> Predator {
+    fn new(new_id: u32, new_x:f32, new_y: f32, new_gen: u32, new_state: i32, new_velocity_x: f32, new_velocity_y: f32, new_orientation: f32, new_target_x: f32,new_target_y: f32, new_energy: i32, new_gen_seq: String, new_family: Vec<i32>, new_time_family: u64, new_is_pregnant: bool, new_time_til_birth: u64, new_mate_gen_seq: String) -> Predator {
         Predator { mover: Mover::new(new_id, new_x, new_y, new_gen, new_state, new_velocity_x, new_velocity_y, new_orientation, new_target_x, new_target_y, new_energy), gen_seq: new_gen_seq, family: new_family, time_family: new_time_family, is_pregnant: new_is_pregnant, ticks_til_birth: new_time_til_birth, mate_gen_seq: new_mate_gen_seq }
     }
     pub fn get_gen_seq(&self) ->  String {
@@ -523,7 +525,7 @@ impl Predator {
     pub fn get_family(&self) -> Vec<i32> {
         self.family.clone()
     }
-    pub fn get_time_family(&self) -> f32 {
+    pub fn get_time_family(&self) -> u64 {
         self.time_family
     }
     pub fn get_is_pregnant(&self) -> bool {
@@ -544,7 +546,7 @@ impl Predator {
     fn add_family(&mut self, new_fam_id: i32) {
         self.family.push(new_fam_id);
     }
-    fn set_time_family(&mut self, new_time_family: f32) {
+    fn set_time_family(&mut self, new_time_family: u64) {
         self.time_family = new_time_family;
     }
     fn set_is_pregnant(&mut self, is_pregnant: bool) {
