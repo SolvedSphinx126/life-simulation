@@ -14,14 +14,24 @@ const render = () => {
 
 const map = Map.new();
 
-var r = map.add_rock(1,10,15,7,9);
-map.add_rock(2,10,15,7,8);
+var r = map.add_rock(1,10,15,0,7,9);
+map.add_rock(2,10,15,0,7,8);
+
+var p = map.add_plant(2,0,0,0,20,BigInt(32),BigInt(0));
+
+map.add_grazer(15,15,15,15,15,15,15,15,1,1,1,1);
+
+map.add_predator(23,1,2,3,4,5,6,7,8,9,12,"helllo",22,BigInt(42),32,BigInt(72),"hi");
+
+for(var pred of map.get_predators()) {
+    console.log("pred time family " + pred.get_time_family());
+}
 
 map.set_width(10);
 map.set_height(10);
 
 for(var rock of map.get_rocks()) {
-    console.log(rock.get_height());
+    console.log("rock height " + rock.get_height());
 }
 
 render()
