@@ -14,36 +14,36 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 #[derive(Default)]
 #[wasm_bindgen]
 pub struct Map {
-    pub width: u32,
-    pub height: u32,
-    pub current_tick: u64,
+    width: u32,
+    height: u32,
+    current_tick: u64,
     //world constants
     //plant
     //counts arent needed
-    pub init_plant_count: u32,
-    pub growth_rate: f32,
-    pub max_size: u32,
-    pub max_seed_cast_distance: u32,
-    pub max_seed_number: u32,
-    pub seed_viability: f32,
+    init_plant_count: u32,
+    growth_rate: f32,
+    max_size: u32,
+    max_seed_cast_distance: u32,
+    max_seed_number: u32,
+    seed_viability: f32,
     //grazer
-    pub init_grazer_count: u32,
-    pub grazer_energy_input: u32,
-    pub grazer_energy_output: u32,
-    pub grazer_energy_to_reproduce: u32,
-    pub grazer_maintain_speed: f32,
-    pub grazer_max_speed: f32,
+    init_grazer_count: u32,
+    grazer_energy_input: u32,
+    grazer_energy_output: u32,
+    grazer_energy_to_reproduce: u32,
+    grazer_maintain_speed: f32,
+    grazer_max_speed: f32,
     //predator
-    pub init_predator_count: u32,
-    pub max_speed_hod: f32,
-    pub max_speed_hed: f32,
-    pub max_speed_hor: f32,
-    pub predator_maintain_speed: f32,
-    pub predator_energy_output: u32,
-    pub predator_energy_to_reproduce: u32,
-    pub predator_max_offspring: u32,
-    pub predator_gestation: f32,
-    pub predator_offspring_energy: u32,
+    init_predator_count: u32,
+    max_speed_hod: f32,
+    max_speed_hed: f32,
+    max_speed_hor: f32,
+    predator_maintain_speed: f32,
+    predator_energy_output: u32,
+    predator_energy_to_reproduce: u32,
+    predator_max_offspring: u32,
+    predator_gestation: f32,
+    predator_offspring_energy: u32,
 
     rocks: Vec<Rock>,
     predators: Vec<Predator>,
@@ -261,9 +261,9 @@ impl Map {
 #[derive(Clone, Copy)]
 #[wasm_bindgen]
 pub struct Entity {
-    pub id: u32,
-    pub x: i32,
-    pub y: i32,
+    id: u32,
+    x: i32,
+    y: i32,
 }
 
 #[wasm_bindgen]
@@ -309,14 +309,14 @@ impl Default for Entity {
 #[derive(Clone, Copy)]
 #[wasm_bindgen]
 pub struct Mover {
-    pub entity: Entity,
-    pub state: i32, // needs to be enum of state
-    pub velocity_x: i32,
-    pub velocity_y: i32,
-    pub orientation: f32,
-    pub target_x: i32,
-    pub target_y: i32,
-    pub energy: i32,
+    entity: Entity,
+    state: i32, // needs to be enum of state
+    velocity_x: i32,
+    velocity_y: i32,
+    orientation: f32,
+    target_x: i32,
+    target_y: i32,
+    energy: i32,
 }
 
 #[wasm_bindgen]
@@ -399,9 +399,9 @@ impl Default for Mover {
 #[derive(Clone, Copy)]
 #[wasm_bindgen]
 pub struct Rock {
-    pub entity: Entity,
-    pub diameter: u32,
-    pub height: u32,
+    entity: Entity,
+    diameter: u32,
+    height: u32,
 }
 
 #[wasm_bindgen]
@@ -414,16 +414,16 @@ impl Rock {
         }
     }
 
-    pub fn get_x(&self) -> i32 {
+    fn get_x(&self) -> i32 {
         self.entity.get_x()
     }
-    pub fn get_y(&self) -> i32 {
+    fn get_y(&self) -> i32 {
         self.entity.get_y()
     }
-    pub fn get_diameter(&self) -> u32 {
+    fn get_diameter(&self) -> u32 {
         self.diameter
     }
-    pub fn get_height(&self) -> u32 {
+    fn get_height(&self) -> u32 {
         self.height
     }
     fn set_diameter(&mut self, new_diameter: u32) {
@@ -437,7 +437,7 @@ impl Rock {
 #[derive(Clone, Copy, Default)]
 #[wasm_bindgen]
 pub struct Grazer {
-    pub mover: Mover,
+    mover: Mover,
     ticks_in_loc: i32, //minutes in cur location without moving max is 10 once at 10 need to move
 }
 
@@ -457,10 +457,10 @@ impl Grazer {
             ..Default::default()
         }
     }
-    pub fn get_ticks_in_loc(&self) -> i32 {
+    fn get_ticks_in_loc(&self) -> i32 {
         self.ticks_in_loc
     }
-    pub fn get_mover(&self) -> Mover {
+    fn get_mover(&self) -> Mover {
         return self.mover;
     }
     fn set_ticks_in_loc(&mut self, new_min_in_loc: i32) {
@@ -471,8 +471,8 @@ impl Grazer {
 #[derive(Clone, Copy)]
 #[wasm_bindgen]
 pub struct Plant {
-    pub entity: Entity,
-    pub diameter: u32,
+    entity: Entity,
+    diameter: u32,
 }
 
 #[wasm_bindgen]
@@ -484,7 +484,7 @@ impl Plant {
             diameter: new_diameter,
         }
     }
-    pub fn get_diameter(&self) -> u32 {
+    fn get_diameter(&self) -> u32 {
         self.diameter
     }
     fn is_max_size(&mut self, map: &Map) -> bool {
@@ -499,12 +499,12 @@ impl Plant {
 #[derive(Clone, Default)]
 #[wasm_bindgen]
 pub struct Predator {
-    pub mover: Mover,
+    mover: Mover,
     gen_seq: String,
     family: Vec<i32>,     //vector of family ids
-    pub time_family: f32, // time after mating that predator cares about family
-    pub is_pregnant: bool,
-    pub ticks_til_birth: u64, // the first tick where the gestation period is over
+    time_family: f32, // time after mating that predator cares about family
+    is_pregnant: bool,
+    ticks_til_birth: u64, // the first tick where the gestation period is over
     mate_gen_seq: String,     // mates gennetic sequence
 }
 
@@ -517,43 +517,43 @@ impl Predator {
             ..Default::default()
         }
     }
-    pub fn get_gen_seq(&self) -> String {
-        self.gen_seq.clone()
+    fn get_gen_seq(&self) -> String {
+       self.gen_seq.clone()
     }
-    pub fn get_family(&self) -> Vec<i32> {
+    fn get_family(&self) -> Vec<i32> {
         self.family.clone()
     }
-    pub fn get_time_family(&self) -> f32 {
+    fn get_time_family(&self) -> f32 {
         self.time_family
     }
-    pub fn get_is_pregnant(&self) -> bool {
+    fn get_is_pregnant(&self) -> bool {
         self.is_pregnant
     }
-    pub fn get_ticks_til_birth(&self) -> u64 {
+    fn get_ticks_til_birth(&self) -> u64 {
         self.ticks_til_birth
     }
-    pub fn get_mate_seq(&self) -> String {
+    fn get_mate_seq(&self) -> String {
         self.mate_gen_seq.clone()
     }
-    pub fn set_gen_seq(&mut self, new_gen_seq: String) {
+    fn set_gen_seq(&mut self, new_gen_seq: String) {
         self.gen_seq = new_gen_seq;
     }
-    pub fn set_familiy(&mut self, new_family: Vec<i32>) {
+    fn set_familiy(&mut self, new_family: Vec<i32>) {
         self.family = new_family;
     }
-    pub fn add_family(&mut self, new_fam_id: i32) {
+    fn add_family(&mut self, new_fam_id: i32) {
         self.family.push(new_fam_id);
     }
-    pub fn set_time_family(&mut self, new_time_family: f32) {
+    fn set_time_family(&mut self, new_time_family: f32) {
         self.time_family = new_time_family;
     }
-    pub fn set_is_pregnant(&mut self, is_pregnant: bool) {
+    fn set_is_pregnant(&mut self, is_pregnant: bool) {
         self.is_pregnant = is_pregnant;
     }
-    pub fn set_ticks_til_birth(&mut self, map: Map, new_time_til_birth: u64) {
+    fn set_ticks_til_birth(&mut self, map: Map, new_time_til_birth: u64) {
         self.ticks_til_birth = new_time_til_birth + Map::get_current_tick(&map);
     }
-    pub fn set_mate_gen_seq(&mut self, new_mate_gen_seq: String) {
+    fn set_mate_gen_seq(&mut self, new_mate_gen_seq: String) {
         self.mate_gen_seq = new_mate_gen_seq;
     }
 }
