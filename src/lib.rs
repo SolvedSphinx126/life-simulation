@@ -116,6 +116,7 @@ impl Map {
 
     pub fn add_rock(&mut self, x: f32, y: f32, diameter: u32, height: u32) {
         let new_rock = Rock::new(x, y, diameter, height);
+        self.rocks.push(new_rock);
     }
     pub fn add_plant(&mut self, x: f32, y: f32, diameter: f32) {
         let new_plant = Plant::new(x, y, diameter);
