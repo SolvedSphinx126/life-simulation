@@ -51,7 +51,7 @@ fileInputElement.addEventListener("change", e => fileInputElement.files[0].text(
     }
 
     // grazer metadata
-    map.set_init_grazer_count(parseInt(plants.getElementsByTagName("INITIAL_GRAZER_COUNT")[0].childNodes[0].nodeValue));
+    map.set_init_grazer_count(parseInt(grazers.getElementsByTagName("INITIAL_GRAZER_COUNT")[0].childNodes[0].nodeValue));
     map.set_grazer_energy_input(parseInt(grazers.getElementsByTagName("G_ENERGY_INPUT")[0].childNodes[0].nodeValue));
     map.set_grazer_energy_output(parseInt(grazers.getElementsByTagName("G_ENERGY_OUTPUT")[0].childNodes[0].nodeValue));
     map.set_grazer_energy_to_reproduce(parseInt(grazers.getElementsByTagName("G_ENERGY_TO_REPRODUCE")[0].childNodes[0].nodeValue));
@@ -67,7 +67,7 @@ fileInputElement.addEventListener("change", e => fileInputElement.files[0].text(
     }
 
     // predator metadata
-    map.set_init_predator_count(parseInt(plants.getElementsByTagName("INITIAL_PREDATOR_COUNT")[0].childNodes[0].nodeValue));
+    map.set_init_predator_count(parseInt(predators.getElementsByTagName("INITIAL_PREDATOR_COUNT")[0].childNodes[0].nodeValue));
     map.set_max_speed_hod(parseFloat(predators.getElementsByTagName("MAX_SPEED_HOD")[0].childNodes[0].nodeValue));
     map.set_max_speed_hed(parseFloat(predators.getElementsByTagName("MAX_SPEED_HED")[0].childNodes[0].nodeValue));
     map.set_max_speed_hor(parseFloat(predators.getElementsByTagName("MAX_SPEED_HOR")[0].childNodes[0].nodeValue));
