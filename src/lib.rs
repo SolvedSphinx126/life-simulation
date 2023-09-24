@@ -546,22 +546,21 @@ impl Plant {
         self.generation = new_gen;
     }
     // make function that just increments by 1hrs worth of ticks
-    //not includeing set grow tick as this only matters to new plant and never needs to be used again
+    // not includeing set grow tick as this only matters to new plant and never needs to be used again
 
     //need actual seeding functions
     fn grow(&mut self, growth_add: f32) {
-        //where growth add is growth rate * max size (this should be calculated in map and passed to this function)
+        // where growth add is growth rate * max size (this should be calculated in map and passed to this function)
         if self.diameter == 0.0 {
             self.diameter = 0.01
         }
         self.diameter = self.diameter + growth_add;
     }
-    fn seed(&self, map: &mut Map) -> Vec<Plant> {
-        //need tick to second ratio 1:1
+    fn seed(&self, map: &mut Map) {
+        // need tick to second ratio 1:1
         // seeds start growing after 10 seconds so should add delay_growth: till specific tick to plant
-        //need to add next_seed_tick as well 1 hour between seed events
+        // need to add next_seed_tick as well 1 hour between seed events
         // need rng for seed count 0-Max seed count
-        let mut new_plants = Vec::new();
         let mut rng = rand::thread_rng();
         let seed_num = rng.gen_range(0..map.get_max_size());
         let mut i = 1;
@@ -574,7 +573,6 @@ impl Plant {
                 let new_distance = rng.gen_range(1..map.get_max_seed_cast_distance()) as f32;
                 let new_x = self.entity.get_x() + (new_distance * new_angle.cos());
                 let new_y = self.entity.get_y() + (new_distance * new_angle.sin());
-                let new_id = 2001 + map.get_plants_size();
                 let new_grow_tick = map.get_current_tick() + 10;
                 let new_gen = self.entity.get_gen();
 
@@ -583,12 +581,9 @@ impl Plant {
                 new_plant.set_grow_tick(new_grow_tick);
                 new_plant.set_generation(new_gen);
                 map.plants.push(new_plant);
-                new_plants.push(new_plant)
             }
             i = i + 1;
         }
-
-        return new_plants;
     }
 }
 
