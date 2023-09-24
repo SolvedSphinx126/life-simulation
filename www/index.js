@@ -1,4 +1,4 @@
-import {Map, Predator} from "life_simulation";
+import {Map} from "life_simulation";
 
 var canvas = document.getElementById("game-canvas");
 var ctx = canvas.getContext("2d");
