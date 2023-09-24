@@ -61,7 +61,6 @@ impl Map {
         self.current_tick
     }
 
-
     pub fn get_width(&self) -> u32 {
         self.width
     }
@@ -97,29 +96,29 @@ impl Map {
             .map(JsValue::from)
             .collect::<js_sys::Array>()
     }
-    pub fn add_rock(&mut self, x: f32, y: f32, diameter: u32, height: u32) {
-        let new_rock = Rock::new(x, y, diameter, height);
-    }
 
-    pub fn get_rocks_size(&self) -> u32{
+    pub fn get_rocks_size(&self) -> u32 {
         let size = self.rocks.len() as u32;
         return size;
     }
-    pub fn get_plants_size(&self) -> u32{
+    pub fn get_plants_size(&self) -> u32 {
         let size = self.plants.len() as u32;
         return size;
     }
-    pub fn get_grazers_size(&self) -> u32{
+    pub fn get_grazers_size(&self) -> u32 {
         let size = self.grazers.len() as u32;
         return size;
     }
-    pub fn get_predators_size(&self) -> u32{
+    pub fn get_predators_size(&self) -> u32 {
         let size = self.predators.len() as u32;
         return size;
     }
 
+    pub fn add_rock(&mut self, x: f32, y: f32, diameter: u32, height: u32) {
+        let new_rock = Rock::new(x, y, diameter, height);
+    }
     pub fn add_plant(&mut self, x: f32, y: f32, diameter: f32) {
-        let new_plant = Plant::new( x, y, diameter);
+        let new_plant = Plant::new(x, y, diameter);
         self.plants.push(new_plant);
     }
     pub fn add_grazer(&mut self, new_x: f32, new_y: f32, new_energy: i32) {
@@ -326,7 +325,12 @@ impl Entity {
 
 impl Default for Entity {
     fn default() -> Self {
-        Entity { id: Uuid::new_v4(), x: 0.0, y: 0.0, generation: 0 }
+        Entity {
+            id: Uuid::new_v4(),
+            x: 0.0,
+            y: 0.0,
+            generation: 0,
+        }
     }
 }
 
@@ -432,7 +436,11 @@ pub struct Rock {
 impl Rock {
     fn new(new_x: f32, new_y: f32, new_diameter: u32, new_height: u32) -> Rock {
         Rock {
-            entity: Entity {x: new_x, y: new_y, ..Default::default()},
+            entity: Entity {
+                x: new_x,
+                y: new_y,
+                ..Default::default()
+            },
             diameter: new_diameter,
             height: new_height,
         }
@@ -516,18 +524,18 @@ impl Plant {
         self.diameter
     }
     fn is_max_size(&mut self, map: &Map) -> bool {
-       return self.diameter >= (map.get_max_size() as f32);
+        return self.diameter >= (map.get_max_size() as f32);
     }
-    fn get_next_seed_tick(&self) -> u64{
+    fn get_next_seed_tick(&self) -> u64 {
         self.next_seed_tick
     }
-    fn get_grow_tick(&self) -> u64{
+    fn get_grow_tick(&self) -> u64 {
         self.grow_tick
     }
     fn set_diameter(&mut self, new_diameter: f32) {
         self.diameter = new_diameter;
     }
-    fn set_next_seed_tick(&mut self, new_tick: u64){
+    fn set_next_seed_tick(&mut self, new_tick: u64) {
         self.next_seed_tick = new_tick
     }
     fn set_grow_tick(&mut self, new_grow_tick: u64) {
@@ -540,14 +548,14 @@ impl Plant {
     //not includeing set grow tick as this only matters to new plant and never needs to be used again
 
     //need actual seeding functions
-    fn grow(&mut self, growth_add: f32){
+    fn grow(&mut self, growth_add: f32) {
         //where growth add is growth rate * max size (this should be calculated in map and passed to this function)
-        if self.diameter == 0.0{
+        if self.diameter == 0.0 {
             self.diameter = 0.01
         }
         self.diameter = self.diameter + growth_add;
     }
-    fn seed(&self, map: &mut Map) -> Vec<Plant>{
+    fn seed(&self, map: &mut Map) -> Vec<Plant> {
         //need tick to second ratio 1:1
         // seeds start growing after 10 seconds so should add delay_growth: till specific tick to plant
         //need to add next_seed_tick as well 1 hour between seed events
@@ -558,17 +566,18 @@ impl Plant {
         let mut i = 1;
         while i <= seed_num {
             let good_seed = rng.gen_range(0.0..100.0);
-            if good_seed > map.get_seed_viability(){ //if seed is viable make plant
+            if good_seed > map.get_seed_viability() {
+                //if seed is viable make plant
                 //generate coords
                 let new_angle = rng.gen_range(0.0..360.0) as f32;
                 let new_distance = rng.gen_range(1..map.get_max_seed_cast_distance()) as f32;
-                let new_x = self.entity.get_x() + ( new_distance * new_angle.cos());
-                let new_y = self.entity.get_y() + ( new_distance * new_angle.sin());
+                let new_x = self.entity.get_x() + (new_distance * new_angle.cos());
+                let new_y = self.entity.get_y() + (new_distance * new_angle.sin());
                 let new_id = 2001 + map.get_plants_size();
                 let new_grow_tick = map.get_current_tick() + 10;
                 let new_gen = self.entity.get_gen();
 
-                let mut new_plant = Plant::new(new_x,new_y,0.0);
+                let mut new_plant = Plant::new(new_x, new_y, 0.0);
                 new_plant.set_next_seed_tick(0);
                 new_plant.set_grow_tick(new_grow_tick);
                 new_plant.set_generation(new_gen);
@@ -577,11 +586,9 @@ impl Plant {
             }
             i = i + 1;
         }
-        
+
         return new_plants;
-
     }
-
 }
 
 #[derive(Clone, Default)]
@@ -593,7 +600,7 @@ pub struct Predator {
     time_family: u64, // time after mating that predator cares about family
     is_pregnant: bool,
     ticks_til_birth: u64, // the first tick where the gestation period is over
-    mate_gen_seq: String,     // mates gennetic sequence
+    mate_gen_seq: String, // mates gennetic sequence
 }
 
 #[wasm_bindgen]
@@ -606,7 +613,7 @@ impl Predator {
         }
     }
     fn get_gen_seq(&self) -> String {
-       self.gen_seq.clone()
+        self.gen_seq.clone()
     }
     fn get_family(&self) -> Vec<i32> {
         self.family.clone()
