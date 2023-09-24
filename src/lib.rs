@@ -279,11 +279,11 @@ impl Entity {
         self.id
     }
 
-    fn get_x(&self) -> i32 {
+    pub fn get_x(&self) -> i32 {
         self.x
     }
 
-    fn get_y(&self) -> i32 {
+    pub fn get_y(&self) -> i32 {
         self.y
     }
 
@@ -309,7 +309,7 @@ impl Default for Entity {
 #[derive(Clone, Copy)]
 #[wasm_bindgen]
 pub struct Mover {
-    entity: Entity,
+    pub entity: Entity,
     state: i32, // needs to be enum of state
     velocity_x: i32,
     velocity_y: i32,
@@ -420,7 +420,7 @@ impl Rock {
     fn get_y(&self) -> i32 {
         self.entity.get_y()
     }
-    fn get_diameter(&self) -> u32 {
+    pub fn get_diameter(&self) -> u32 {
         self.diameter
     }
     fn get_height(&self) -> u32 {
@@ -431,6 +431,9 @@ impl Rock {
     }
     fn set_height(&mut self, new_height: u32) {
         self.height = new_height;
+    }
+    pub fn get_entity(&self) -> Entity {
+        self.entity
     }
 }
 
@@ -484,7 +487,7 @@ impl Plant {
             diameter: new_diameter,
         }
     }
-    fn get_diameter(&self) -> u32 {
+    pub fn get_diameter(&self) -> u32 {
         self.diameter
     }
     fn is_max_size(&mut self, map: &Map) -> bool {
@@ -492,6 +495,9 @@ impl Plant {
     }
     fn set_diameter(&mut self, new_diameter: u32) {
         self.diameter = new_diameter;
+    }
+    pub fn get_entity(&self) -> Entity {
+        self.entity
     }
     //need actual seeding functions
 }

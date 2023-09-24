@@ -3,18 +3,42 @@ import {Map} from "life_simulation";
 var canvas = document.getElementById("game-canvas");
 var ctx = canvas.getContext("2d");
 
-const drawBg = () => {
-    ctx.fillStyle = "#111111";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+const drawCircle = (x, y, d, color) => {
+    x = (x / map.get_width()) * ctx.canvas.width;
+    y = (y / map.get_height()) * ctx.canvas.height;
+    x = x;
+    y = ctx.canvas.height - y;
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.arc(x, y, d, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.stroke();
 }
 
-const render = () => {
-    drawBg();
+const drawRocks = () => {
+    for (var rock of map.get_rocks()) {
+        drawCircle(rock.get_entity().get_x(), rock.get_entity().get_y(), rock.get_diameter(), 'grey')
+    }
+}
+
+const drawPlants = () => {
+    for (var plant of map.get_plants()) {
+        drawCircle(plant.get_entity().get_x(), plant.get_entity().get_y(), plant.get_diameter(), 'green')
+    }
+}
+
+const render = async () => {
+    ctx.canvas.width = ctx.canvas.clientWidth
+    ctx.canvas.height = ctx.canvas.clientHeight
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+    drawRocks();
+    drawPlants();
+    await new Promise(r => setTimeout(r, 1000));
+    requestAnimationFrame(render);
 }
 
 const map = Map.new();
-
-
 render()
 
 var fileInputElement = document.getElementById("file-input");
