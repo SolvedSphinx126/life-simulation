@@ -386,6 +386,9 @@ impl Mover {
     fn get_energy(&self) -> i32 {
         self.energy
     }
+    pub fn get_entity(&self) -> Entity {
+        self.entity
+    }
     fn set_state(&mut self, new_state: i32) {
         //need to be enum here once we do that
         self.state = new_state;
@@ -496,8 +499,11 @@ impl Grazer {
     fn get_ticks_in_loc(&self) -> i32 {
         self.ticks_in_loc
     }
-    fn get_mover(&self) -> Mover {
+    pub fn get_mover(&self) -> Mover {
         return self.mover;
+    }
+    pub fn get_entity(&self) -> Entity {
+        self.mover.entity
     }
     fn set_ticks_in_loc(&mut self, new_min_in_loc: i32) {
         self.ticks_in_loc = new_min_in_loc;

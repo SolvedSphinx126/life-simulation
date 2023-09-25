@@ -32,6 +32,7 @@ const drawMover = (x, y, d, orientation, color) => {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.restore();
 }
 
 const drawRocks = () => {
@@ -42,7 +43,6 @@ const drawRocks = () => {
 
 const drawPlants = () => {
     for (var plant of map.get_plants()) {
-        console.log(plant.get_entity().get_x(), plant.get_entity().get_y(), plant.get_diameter())
         drawCircle(plant.get_entity().get_x(), plant.get_entity().get_y(), plant.get_diameter(), 'green')
     }
 }
@@ -53,6 +53,12 @@ const drawPredators = () => {
     }
 }
 
+const drawGrazers = () => {
+    for (var grazer of map.get_grazers()) {
+        drawMover(grazer.get_entity().get_x(), grazer.get_entity().get_y(), 10, grazer.get_mover().get_orientation(), 'blue')
+    }
+}
+
 const render = async () => {
     ctx.canvas.width = ctx.canvas.clientWidth
     ctx.canvas.height = ctx.canvas.clientHeight
@@ -60,7 +66,7 @@ const render = async () => {
     drawRocks();
     drawPlants();
     drawPredators();
-    drawMover(500, 500, 30, 4.7, 'red');
+    drawGrazers();
     await new Promise(r => setTimeout(r, 1000));
     requestAnimationFrame(render);
 }
