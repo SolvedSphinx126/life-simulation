@@ -300,13 +300,11 @@ impl Entity {
         self.id
     }
 
-    pub fn get_x(&self) -> i32 {
-    fn get_x(&self) -> f32 {
+    pub fn get_x(&self) -> f32 {
         self.x
     }
 
-    pub fn get_y(&self) -> i32 {
-    fn get_y(&self) -> f32 {
+    pub fn get_y(&self) -> f32 {
         self.y
     }
     fn get_gen(&self) -> u32 {
@@ -376,7 +374,7 @@ impl Mover {
     fn get_velocity_y(self) -> f32 {
         self.velocity_y
     }
-    fn get_orientation(&self) -> f32 {
+    pub fn get_orientation(&self) -> f32 {
         self.orientation
     }
     fn get_target_x(&self) -> f32 {
@@ -526,7 +524,7 @@ impl Plant {
             ..Default::default()
         }
     }
-    pub fn get_diameter(&self) -> u32 {
+    pub fn get_diameter(&self) -> f32 {
         self.diameter
     }
     fn is_max_size(&mut self, map: &Map) -> bool {
@@ -615,6 +613,12 @@ impl Predator {
             gen_seq: new_gen_seq,
             ..Default::default()
         }
+    }
+    pub fn get_mover(&self) -> Mover {
+        self.mover
+    }
+    pub fn get_entity(&self) -> Entity {
+        self.mover.entity
     }
     fn get_gen_seq(&self) -> String {
         self.gen_seq.clone()
