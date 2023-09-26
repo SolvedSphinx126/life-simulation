@@ -509,6 +509,12 @@ impl Grazer {
     fn set_ticks_in_loc(&mut self, new_min_in_loc: i32) {
         self.ticks_in_loc = new_min_in_loc;
     }
+    fn reproduce(&mut self, map: &mut Map) {
+        let new_energy = self.mover.energy / 2;
+        map.add_grazer(self.mover.entity.x + 0.5, self.mover.entity.y, new_energy);
+        self.mover.energy = new_energy;
+        // keep an eye on original grazer to make sure energy is set to new energy after new grazer exixsts
+    }
 }
 
 #[derive(Clone, Copy, Default)]
