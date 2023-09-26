@@ -63,11 +63,13 @@ const render = async () => {
     ctx.canvas.width = ctx.canvas.clientWidth
     ctx.canvas.height = ctx.canvas.clientHeight
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+    // perform calculation for movement functions before any entities are drawn
     drawRocks();
     drawPlants();
     drawPredators();
     drawGrazers();
-    await new Promise(r => setTimeout(r, 1000));
+    map.tick();
+    await new Promise(r => setTimeout(r, 50));
     requestAnimationFrame(render);
 }
 

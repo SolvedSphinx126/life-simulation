@@ -59,8 +59,14 @@ impl Map {
     }
     pub fn tick(&mut self) {
         //let old_map = self.clone();
+        for plant in self.plants.iter_mut() {
+            plant.tick();
+        }
         for grazer in self.grazers.iter_mut() {
-            grazer.mover.tick();
+            grazer.tick();
+        }
+        for pred in self.predators.iter_mut() {
+            pred.tick();
         }
     }
 
@@ -426,8 +432,8 @@ impl Default for Mover {
         Mover {
             entity: Entity::default(),
             state: 0,
-            velocity_x: 0.0,
-            velocity_y: 0.00,
+            velocity_x: 1.0,
+            velocity_y: 1.0,
             orientation: rng.gen_range(0.0..6.28),
             target_x: 0.0,
             target_y: 0.0,
@@ -504,6 +510,10 @@ impl Grazer {
             ..Default::default()
         }
     }
+    fn tick(&mut self) {
+        self.mover.tick();
+    }
+
     fn get_ticks_in_loc(&self) -> i32 {
         self.ticks_in_loc
     }
@@ -540,6 +550,9 @@ impl Plant {
     }
     pub fn get_diameter(&self) -> f32 {
         self.diameter
+    }
+    fn tick(&mut self) {
+        
     }
     fn is_max_size(&mut self, map: &Map) -> bool {
         return self.diameter >= (map.get_max_size() as f32);
@@ -633,6 +646,9 @@ impl Predator {
     }
     pub fn get_entity(&self) -> Entity {
         self.mover.entity
+    }
+    fn tick(&mut self) {
+        self.mover.tick();
     }
     fn get_gen_seq(&self) -> String {
         self.gen_seq.clone()
