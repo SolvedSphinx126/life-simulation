@@ -68,6 +68,7 @@ impl Map {
         for pred in self.predators.iter_mut() {
             pred.tick();
         }
+        self.current_tick += 1;
     }
 
     pub fn get_width(&self) -> u32 {
