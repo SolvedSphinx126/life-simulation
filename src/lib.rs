@@ -1,14 +1,11 @@
 //use wasm_bindgen::prelude::*;
-use uuid::Uuid;
 
 #[wasm_bindgen]
 extern "C" {
     fn alert(s: &str);
 }
 use rand::Rng;
-//use crate::grazer::grazer::Grazer;
-//use crate::plant::plant::Plant;
-//use crate::rock::rock::Rock;
+use uuid::Uuid;
 use js_sys::Array;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
@@ -415,12 +412,13 @@ impl Mover {
 
 impl Default for Mover {
     fn default() -> Self {
+        let mut rng = rand::thread_rng();
         Mover {
             entity: Entity::default(),
             state: 0,
             velocity_x: 0.0,
-            velocity_y: 0.0,
-            orientation: 0.0,
+            velocity_y: 0.00,
+            orientation: rng.gen_range(0.0..6.28),
             target_x: 0.0,
             target_y: 0.0,
             energy: 0,
