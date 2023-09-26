@@ -1,14 +1,11 @@
 //use wasm_bindgen::prelude::*;
-use uuid::Uuid;
 
 #[wasm_bindgen]
 extern "C" {
     fn alert(s: &str);
 }
 use rand::Rng;
-//use crate::grazer::grazer::Grazer;
-//use crate::plant::plant::Plant;
-//use crate::rock::rock::Rock;
+use uuid::Uuid;
 use js_sys::Array;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
@@ -306,11 +303,11 @@ impl Entity {
         self.id
     }
 
-    fn get_x(&self) -> f32 {
+    pub fn get_x(&self) -> f32 {
         self.x
     }
 
-    fn get_y(&self) -> f32 {
+    pub fn get_y(&self) -> f32 {
         self.y
     }
     fn get_gen(&self) -> u32 {
@@ -344,7 +341,7 @@ impl Default for Entity {
 #[derive(Clone, Copy)]
 #[wasm_bindgen]
 pub struct Mover {
-    entity: Entity,
+    pub entity: Entity,
     state: i32, // needs to be enum of state
     velocity_x: f32,
     velocity_y: f32,
@@ -384,7 +381,7 @@ impl Mover {
     fn get_velocity_y(self) -> f32 {
         self.velocity_y
     }
-    fn get_orientation(&self) -> f32 {
+    pub fn get_orientation(&self) -> f32 {
         self.orientation
     }
     fn get_target_x(&self) -> f32 {
@@ -395,6 +392,9 @@ impl Mover {
     }
     fn get_energy(&self) -> i32 {
         self.energy
+    }
+    pub fn get_entity(&self) -> Entity {
+        self.entity
     }
     fn set_state(&mut self, new_state: i32) {
         //need to be enum here once we do that
@@ -422,12 +422,13 @@ impl Mover {
 
 impl Default for Mover {
     fn default() -> Self {
+        let mut rng = rand::thread_rng();
         Mover {
             entity: Entity::default(),
             state: 0,
             velocity_x: 0.0,
-            velocity_y: 0.0,
-            orientation: 0.0,
+            velocity_y: 0.00,
+            orientation: rng.gen_range(0.0..6.28),
             target_x: 0.0,
             target_y: 0.0,
             energy: 0,
@@ -463,7 +464,7 @@ impl Rock {
     fn get_y(&self) -> f32 {
         self.entity.get_y()
     }
-    fn get_diameter(&self) -> u32 {
+    pub fn get_diameter(&self) -> u32 {
         self.diameter
     }
     fn get_height(&self) -> u32 {
@@ -474,6 +475,9 @@ impl Rock {
     }
     fn set_height(&mut self, new_height: u32) {
         self.height = new_height;
+    }
+    pub fn get_entity(&self) -> Entity {
+        self.entity
     }
 }
 
@@ -503,8 +507,11 @@ impl Grazer {
     fn get_ticks_in_loc(&self) -> i32 {
         self.ticks_in_loc
     }
-    fn get_mover(&self) -> Mover {
+    pub fn get_mover(&self) -> Mover {
         return self.mover;
+    }
+    pub fn get_entity(&self) -> Entity {
+        self.mover.entity
     }
     fn set_ticks_in_loc(&mut self, new_min_in_loc: i32) {
         self.ticks_in_loc = new_min_in_loc;
@@ -531,7 +538,7 @@ impl Plant {
             ..Default::default()
         }
     }
-    fn get_diameter(&self) -> f32 {
+    pub fn get_diameter(&self) -> f32 {
         self.diameter
     }
     fn is_max_size(&mut self, map: &Map) -> bool {
@@ -558,6 +565,9 @@ impl Plant {
     // make function that just increments by 1hrs worth of ticks
     // not includeing set grow tick as this only matters to new plant and never needs to be used again
 
+    pub fn get_entity(&self) -> Entity {
+        self.entity
+    }
     //need actual seeding functions
     fn grow(&mut self, growth_add: f32) {
         // where growth add is growth rate * max size (this should be calculated in map and passed to this function)
@@ -617,6 +627,12 @@ impl Predator {
             gen_seq: new_gen_seq,
             ..Default::default()
         }
+    }
+    pub fn get_mover(&self) -> Mover {
+        self.mover
+    }
+    pub fn get_entity(&self) -> Entity {
+        self.mover.entity
     }
     fn get_gen_seq(&self) -> String {
         self.gen_seq.clone()

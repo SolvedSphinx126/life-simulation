@@ -3,18 +3,75 @@ import {Map} from "life_simulation";
 var canvas = document.getElementById("game-canvas");
 var ctx = canvas.getContext("2d");
 
-const drawBg = () => {
-    ctx.fillStyle = "#111111";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+const drawCircle = (x, y, d, color) => {
+    x = (x / map.get_width()) * ctx.canvas.width;
+    y = (y / map.get_height()) * ctx.canvas.height;
+    x = x;
+    y = ctx.canvas.height - y;
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.arc(x, y, d, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.stroke();
 }
 
-const render = () => {
-    drawBg();
+const drawMover = (x, y, d, orientation, color) => {
+    x = (x / map.get_width()) * ctx.canvas.width;
+    y = (y / map.get_height()) * ctx.canvas.height;
+    x = x;
+    y = ctx.canvas.height - y;
+    ctx.beginPath();
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(-(orientation - Math.PI / 2));
+    ctx.translate(-x, -y);
+    ctx.fillStyle = color;
+    ctx.arc(x, y, d, 0, Math.PI);
+    ctx.lineTo(x, y - (1.1 * d));
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+}
+
+const drawRocks = () => {
+    for (var rock of map.get_rocks()) {
+        drawCircle(rock.get_entity().get_x(), rock.get_entity().get_y(), rock.get_diameter(), 'grey')
+    }
+}
+
+const drawPlants = () => {
+    for (var plant of map.get_plants()) {
+        drawCircle(plant.get_entity().get_x(), plant.get_entity().get_y(), plant.get_diameter(), 'green')
+    }
+}
+
+const drawPredators = () => {
+    for (var pred of map.get_predators()) {
+        drawMover(pred.get_entity().get_x(), pred.get_entity().get_y(), 10, pred.get_mover().get_orientation(), 'red')
+    }
+}
+
+const drawGrazers = () => {
+    for (var grazer of map.get_grazers()) {
+        drawMover(grazer.get_entity().get_x(), grazer.get_entity().get_y(), 10, grazer.get_mover().get_orientation(), 'blue')
+    }
+}
+
+const render = async () => {
+    ctx.canvas.width = ctx.canvas.clientWidth
+    ctx.canvas.height = ctx.canvas.clientHeight
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+    drawRocks();
+    drawPlants();
+    drawPredators();
+    drawGrazers();
+    await new Promise(r => setTimeout(r, 1000));
+    requestAnimationFrame(render);
 }
 
 const map = Map.new();
-
-
 render()
 
 var fileInputElement = document.getElementById("file-input");
@@ -47,7 +104,7 @@ fileInputElement.addEventListener("change", e => fileInputElement.files[0].text(
         var plantX = parseInt(plant.getElementsByTagName("X_POS")[0].childNodes[0].nodeValue);
         var plantY = parseInt(plant.getElementsByTagName("Y_POS")[0].childNodes[0].nodeValue);
         var plantD = parseInt(plant.getElementsByTagName("P_DIAMETER")[0].childNodes[0].nodeValue);
-        map.add_plant(1, plantX, plantY, plantD)
+        map.add_plant(plantX, plantY, plantD)
     }
 
     // grazer metadata
