@@ -60,6 +60,12 @@ impl Map {
     pub fn get_current_tick(&self) -> u64 {
         self.current_tick
     }
+    pub fn tick(&mut self) {
+        //let old_map = self.clone();
+        for grazer in self.grazers.iter_mut() {
+            grazer.mover.tick();
+        }
+    }
 
     pub fn get_width(&self) -> u32 {
         self.width
@@ -363,6 +369,10 @@ impl Mover {
             },
             ..Default::default()
         }
+    }
+    fn tick(&mut self) {
+        self.entity.x += self.velocity_x;
+        self.entity.y += self.velocity_y;
     }
     fn get_state(&self) -> i32 {
         //change to enum in future
