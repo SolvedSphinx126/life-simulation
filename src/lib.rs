@@ -4,11 +4,11 @@
 extern "C" {
     fn alert(s: &str);
 }
-use std::{cell::RefCell, ops::DerefMut};
+use std::cell::RefCell;
 
 use rand::Rng;
 use uuid::Uuid;
-use js_sys::Array;
+
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[derive(Default)]
@@ -54,13 +54,13 @@ pub struct Map {
 #[wasm_bindgen]
 impl Map {
     pub fn new() -> Map {
-        return Map::default();
+        Map::default()
     }
     pub fn get_current_tick(&self) -> u64 {
         self.current_tick
     }
     pub fn tick(&mut self) {
-        let map = RefCell::new((&mut *self));
+        let map = RefCell::new(&mut *self);
         for plant in map.borrow_mut().plants.iter_mut() {
             plant.tick(&map);
         }
@@ -111,20 +111,20 @@ impl Map {
     }
 
     pub fn get_rocks_size(&self) -> u32 {
-        let size = self.rocks.len() as u32;
-        return size;
+        
+        self.rocks.len() as u32
     }
     pub fn get_plants_size(&self) -> u32 {
-        let size = self.plants.len() as u32;
-        return size;
+        
+        self.plants.len() as u32
     }
     pub fn get_grazers_size(&self) -> u32 {
-        let size = self.grazers.len() as u32;
-        return size;
+        
+        self.grazers.len() as u32
     }
     pub fn get_predators_size(&self) -> u32 {
-        let size = self.predators.len() as u32;
-        return size;
+        
+        self.predators.len() as u32
     }
 
     pub fn add_rock(&mut self, x: f32, y: f32, diameter: u32, height: u32) {
@@ -514,7 +514,7 @@ impl Grazer {
             ..Default::default()
         }
     }
-    fn tick(&mut self, map: &RefCell<&mut Map>) {
+    fn tick(&mut self, _map: &RefCell<&mut Map>) {
         // an example of a mutable borrow of map is in map.tick 
 		//at the end where the tick is incremented
         self.mover.tick();
@@ -524,7 +524,7 @@ impl Grazer {
         self.ticks_in_loc
     }
     pub fn get_mover(&self) -> Mover {
-        return self.mover;
+        self.mover
     }
     pub fn get_entity(&self) -> Entity {
         self.mover.entity
@@ -557,12 +557,12 @@ impl Plant {
     pub fn get_diameter(&self) -> f32 {
         self.diameter
     }
-    fn tick(&mut self, map: &RefCell<&mut Map>) {
+    fn tick(&mut self, _map: &RefCell<&mut Map>) {
         // an example of a mutable borrow of map is in map.tick 
 		//at the end where the tick is incremented
     }
     fn is_max_size(&mut self, map: &Map) -> bool {
-        return self.diameter >= (map.get_max_size() as f32);
+        self.diameter >= (map.get_max_size() as f32)
     }
     fn get_next_seed_tick(&self) -> u64 {
         self.next_seed_tick
@@ -594,7 +594,7 @@ impl Plant {
         if self.diameter == 0.0 {
             self.diameter = 0.01
         }
-        self.diameter = self.diameter + growth_add;
+        self.diameter += growth_add;
     }
     fn seed(&self, map: &mut Map) {
         // need tick to second ratio 1:1
@@ -654,7 +654,7 @@ impl Predator {
     pub fn get_entity(&self) -> Entity {
         self.mover.entity
     }
-    fn tick(&mut self, map: &RefCell<&mut Map>) {
+    fn tick(&mut self, _map: &RefCell<&mut Map>) {
         // an example of a mutable borrow of map is in map.tick 
 		//at the end where the tick is incremented
         self.mover.tick();
