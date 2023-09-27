@@ -4,9 +4,11 @@
 extern "C" {
     fn alert(s: &str);
 }
+use std::cell::RefCell;
+
 use rand::Rng;
 use uuid::Uuid;
-use js_sys::Array;
+
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use std::cell::RefCell;
 
@@ -59,7 +61,6 @@ impl Map {
         self.current_tick
     }
     pub fn tick(&mut self) {
-        //let old_map = self.clone();
         let map = RefCell::new(&mut *self);
         for plant in map.borrow_mut().plants.iter_mut() {
             plant.tick(&map);
@@ -71,6 +72,7 @@ impl Map {
             pred.tick(&map);
         }
         map.borrow_mut().current_tick += 1;
+        
     }
 
     pub fn get_width(&self) -> u32 {
@@ -110,20 +112,20 @@ impl Map {
     }
 
     pub fn get_rocks_size(&self) -> u32 {
-        let size = self.rocks.len() as u32;
-        return size;
+        
+        self.rocks.len() as u32
     }
     pub fn get_plants_size(&self) -> u32 {
-        let size = self.plants.len() as u32;
-        return size;
+        
+        self.plants.len() as u32
     }
     pub fn get_grazers_size(&self) -> u32 {
-        let size = self.grazers.len() as u32;
-        return size;
+        
+        self.grazers.len() as u32
     }
     pub fn get_predators_size(&self) -> u32 {
-        let size = self.predators.len() as u32;
-        return size;
+        
+        self.predators.len() as u32
     }
 
     pub fn add_rock(&mut self, x: f32, y: f32, diameter: u32, height: u32) {
@@ -524,7 +526,7 @@ impl Grazer {
         self.ticks_in_loc
     }
     pub fn get_mover(&self) -> Mover {
-        return self.mover;
+        self.mover
     }
     pub fn get_entity(&self) -> Entity {
         self.mover.entity
@@ -556,7 +558,7 @@ impl Plant {
     pub fn get_diameter(&self) -> f32 {
         self.diameter
     }
-    fn tick(&mut self, _map: &RefCell<&mut Map>) {
+    fn tick(&mut self, _map: &RefCell<&mut Map>, _map: &RefCell<&mut Map>) {
         let map = _map.borrow_mut();
         let growth_rate =   map.get_growth_rate() * map.get_max_size() as f32;
         if self.get_diameter() == 0.0 && self.grow_tick == map.get_current_tick(){
@@ -574,7 +576,8 @@ impl Plant {
         else if !self.is_max_size(_map){
             //all growth other than first
             self.grow(growth_rate)
-        }
+        }// an example of a mutable borrow of map is in map.tick 
+		//at the end where the tick is incremented
     }
     fn is_max_size(&mut self, _map: &RefCell<&mut Map>) -> bool {
         let map = _map.borrow_mut();
@@ -610,7 +613,7 @@ impl Plant {
         if self.diameter == 0.0 {
             self.diameter = 0.01
         }
-        self.diameter = self.diameter + growth_add;
+        self.diameter += growth_add;
     }
     fn seed(&self, _map: &RefCell<&mut Map>) {
         // need tick to second ratio 1:1
@@ -639,7 +642,7 @@ impl Plant {
                 new_plant.set_generation(new_gen);
                 map.plants.push(new_plant);
             }
-            i = i + 1;
+            i += 1;
         }
     }
 }
@@ -672,6 +675,8 @@ impl Predator {
         self.mover.entity
     }
     fn tick(&mut self, _map: &RefCell<&mut Map>) {
+        // an example of a mutable borrow of map is in map.tick 
+		//at the end where the tick is incremented
         self.mover.tick();
     }
     fn get_gen_seq(&self) -> String {
@@ -708,7 +713,7 @@ impl Predator {
         self.is_pregnant = is_pregnant;
     }
     fn set_ticks_til_birth(&mut self, map: Map, new_time_til_birth: u64) {
-        self.ticks_til_birth = new_time_til_birth + Map::get_current_tick(&map);
+        self.ticks_til_birth = new_time_til_birth + map.get_current_tick();
     }
     fn set_mate_gen_seq(&mut self, new_mate_gen_seq: String) {
         self.mate_gen_seq = new_mate_gen_seq;

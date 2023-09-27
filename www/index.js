@@ -75,7 +75,6 @@ const render = async () => {
 
 const map = Map.new();
 
-
 var fileInputElement = document.getElementById("file-input");
 fileInputElement.addEventListener("change", e => fileInputElement.files[0].text().then((xmlText) => {
     var xmlText = xmlText.replace(/\s/g,"");
@@ -160,7 +159,7 @@ fileInputElement.addEventListener("change", e => fileInputElement.files[0].text(
     console.log(map.get_rocks())
     console.log(map.get_predators())
     console.log(map.get_plants())
+
     render()
-    
     
 }));
