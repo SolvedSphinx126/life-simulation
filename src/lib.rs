@@ -10,7 +10,7 @@ use rand::Rng;
 use uuid::Uuid;
 
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
-use std::cell::RefCell;
+
 
 #[derive(Default)]
 #[wasm_bindgen]
@@ -558,7 +558,7 @@ impl Plant {
     pub fn get_diameter(&self) -> f32 {
         self.diameter
     }
-    fn tick(&mut self, _map: &RefCell<&mut Map>, _map: &RefCell<&mut Map>) {
+    fn tick(&mut self, _map: &RefCell<&mut Map>) {
         let map = _map.borrow_mut();
         let growth_rate =   map.get_growth_rate() * map.get_max_size() as f32;
         if self.get_diameter() == 0.0 && self.grow_tick == map.get_current_tick(){
