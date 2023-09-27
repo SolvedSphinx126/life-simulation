@@ -4,6 +4,8 @@
 extern "C" {
     fn alert(s: &str);
 }
+use std::{cell::RefCell, ops::DerefMut};
+
 use rand::Rng;
 use uuid::Uuid;
 use js_sys::Array;
@@ -58,17 +60,18 @@ impl Map {
         self.current_tick
     }
     pub fn tick(&mut self) {
-        //let old_map = self.clone();
-        for plant in self.plants.iter_mut() {
-            plant.tick();
+        let map = RefCell::new((&mut *self));
+        for plant in map.borrow_mut().plants.iter_mut() {
+            plant.tick(&map);
         }
-        for grazer in self.grazers.iter_mut() {
-            grazer.tick();
+        for grazer in map.borrow_mut().grazers.iter_mut() {
+            grazer.tick(&map);
         }
-        for pred in self.predators.iter_mut() {
-            pred.tick();
+        for pred in map.borrow_mut().predators.iter_mut() {
+            pred.tick(&map);
         }
-        self.current_tick += 1;
+        map.borrow_mut().current_tick += 1;
+        
     }
 
     pub fn get_width(&self) -> u32 {
@@ -511,7 +514,9 @@ impl Grazer {
             ..Default::default()
         }
     }
-    fn tick(&mut self) {
+    fn tick(&mut self, map: &RefCell<&mut Map>) {
+        // an example of a mutable borrow of map is in map.tick 
+		//at the end where the tick is incremented
         self.mover.tick();
     }
 
@@ -552,8 +557,9 @@ impl Plant {
     pub fn get_diameter(&self) -> f32 {
         self.diameter
     }
-    fn tick(&mut self) {
-        
+    fn tick(&mut self, map: &RefCell<&mut Map>) {
+        // an example of a mutable borrow of map is in map.tick 
+		//at the end where the tick is incremented
     }
     fn is_max_size(&mut self, map: &Map) -> bool {
         return self.diameter >= (map.get_max_size() as f32);
@@ -616,7 +622,7 @@ impl Plant {
                 new_plant.set_generation(new_gen);
                 map.plants.push(new_plant);
             }
-            i = i + 1;
+            i += 1;
         }
     }
 }
@@ -648,7 +654,9 @@ impl Predator {
     pub fn get_entity(&self) -> Entity {
         self.mover.entity
     }
-    fn tick(&mut self) {
+    fn tick(&mut self, map: &RefCell<&mut Map>) {
+        // an example of a mutable borrow of map is in map.tick 
+		//at the end where the tick is incremented
         self.mover.tick();
     }
     fn get_gen_seq(&self) -> String {
@@ -685,7 +693,7 @@ impl Predator {
         self.is_pregnant = is_pregnant;
     }
     fn set_ticks_til_birth(&mut self, map: Map, new_time_til_birth: u64) {
-        self.ticks_til_birth = new_time_til_birth + Map::get_current_tick(&map);
+        self.ticks_til_birth = new_time_til_birth + map.get_current_tick();
     }
     fn set_mate_gen_seq(&mut self, new_mate_gen_seq: String) {
         self.mate_gen_seq = new_mate_gen_seq;

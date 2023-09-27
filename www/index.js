@@ -74,7 +74,6 @@ const render = async () => {
 }
 
 const map = Map.new();
-render()
 
 var fileInputElement = document.getElementById("file-input");
 fileInputElement.addEventListener("change", e => fileInputElement.files[0].text().then((xmlText) => {
@@ -161,6 +160,6 @@ fileInputElement.addEventListener("change", e => fileInputElement.files[0].text(
     console.log(map.get_predators())
     console.log(map.get_plants())
 
-    
+    render()
     
 }));
