@@ -61,16 +61,16 @@ impl Map {
     pub fn tick(&mut self) {
         //let old_map = self.clone();
         let map = RefCell::new(&mut *self);
-        for plant in map.borrow_mut().plants.iter_mut(){
+        for plant in map.borrow_mut().plants.iter_mut() {
             plant.tick(&map);
         }
-        for grazer in map.borrow_mut().grazers.iter_mut()  {
+        for grazer in map.borrow_mut().grazers.iter_mut() {
             grazer.tick(&map);
         }
         for pred in map.borrow_mut().predators.iter_mut() {
             pred.tick(&map);
         }
-        self.current_tick += 1;
+        map.borrow_mut().current_tick += 1;
     }
 
     pub fn get_width(&self) -> u32 {
