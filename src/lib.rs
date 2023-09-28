@@ -62,7 +62,7 @@ impl Map {
     }
     pub fn tick(&mut self) {
 
-        let map = Rc::new(self);
+        
         
         let mut new_plants = Vec::new();
         // let mut new_grazers = Vec::new();
@@ -70,7 +70,7 @@ impl Map {
         
 
         for plant in self.plants.iter() {
-            let mut seeds = plant.tick(Rc::clone(map));
+            let mut seeds = plant.tick(self.get_width(),self.get_height(),self.get_growth_rate(), self.get_max_size(), self.get_max_seed_cast_distance(), self.get_max_seed_number(), self.get_seed_viability(), self.get_current_tick());
             new_plants.append(&mut seeds);
         }
         for grazer in self.grazers.iter_mut() {
@@ -80,6 +80,7 @@ impl Map {
             //pred.tick(&map);
         }
         self.current_tick += 1;
+        self.plants = new_plants;
         
     }
 
@@ -566,45 +567,55 @@ impl Plant {
     pub fn get_diameter(&self) -> f32 {
         self.diameter
     }
-    fn tick(&self, map: Map) -> Vec<Plant>{
+    fn tick(&self,width:u32,height:u32, growth_rate: f32, max_size: u32, seed_distance: u32, seed_number: u32, viability: f32, cur_tick: u64) -> Vec<Plant>{
         
         let mut new_plants = Vec::new();
 
-        if self.get_diameter() == 0.0 && self.grow_tick == map.get_current_tick(){
+        if self.get_diameter() == 0.0 && self.grow_tick == cur_tick{
             //first growth
-            let growth_rate =   map.get_growth_rate() * map.get_max_size() as f32;
-            self.grow(growth_rate);
-            let new_plant = self.clone();
+            let growth_rate =   growth_rate * max_size as f32;
+            let mut fake_plant = self.clone();
+            fake_plant.grow(growth_rate);
+            let new_plant = fake_plant.clone();
             new_plants.push(new_plant);
         }
-        else if self.is_max_size(map) && self.get_next_seed_tick() == map.get_current_tick(){
+        else if self.is_max_size(max_size) && self.get_next_seed_tick() == cur_tick{
             //any seed event
-            new_plants.append(self.seed(map));
-
-
-        }
-        else if self.is_max_size(map) && self.get_next_seed_tick() == 0{
-            //first check of max size that sets next seed tick
-            self.set_next_seed_tick(map.get_current_tick() + 3600);
-            let new_plant = self.clone();
-            new_plants.push(new_plant);
-        }
-        else if !self.is_max_size(map){
-            //all growth other than first
-            let growth_rate =   map.get_growth_rate() * map.get_max_size() as f32;
-            self.grow(growth_rate);
+            let mut copy_thingy = self.seed(width, height, max_size,seed_distance, seed_number, viability, cur_tick);
+            new_plants.append(&mut copy_thingy);
             let new_plant = self.clone();
             new_plants.push(new_plant)
+
+
+        }
+        else if self.is_max_size(max_size) && self.get_next_seed_tick() == 0{
+            //first check of max size that sets next seed tick
+            let mut fake_plant = self.clone();
+            fake_plant.set_next_seed_tick(cur_tick + 36); //change back to 3600 after testing
+            let new_plant = fake_plant.clone();
+            new_plants.push(new_plant);
+        }
+        else if !self.is_max_size(max_size){
+            //all growth other than first after seed
+            let mut fake_plant = self.clone();
+            let growth_rate =   growth_rate * max_size as f32;
+            fake_plant.grow(growth_rate);
+            let new_plant = fake_plant.clone();
+            new_plants.push(new_plant)
             
+        }
+        else{
+            let plant = self.clone();
+            new_plants.push(plant);
         }
         return new_plants;
         // an example of a mutable borrow of map is in map.tick 
 		//at the end where the tick is incremented
         
     }
-    fn is_max_size(&mut self, map: Map) -> bool {
+    fn is_max_size(&self, max_size: u32) -> bool {
 
-        return self.diameter >= (map.get_max_size() as f32);
+        return self.diameter >= (max_size as f32);
     }
     fn get_next_seed_tick(&self) -> u64 {
         self.next_seed_tick
@@ -638,26 +649,43 @@ impl Plant {
         }
         self.diameter += growth_add;
     }
-    fn seed(&self, map: Map) -> &mut Vec<Plant>{
+    fn seed(&self, width: u32, height: u32, max_size: u32, seed_distance: u32, seed_number: u32, viability: f32, cur_tick: u64) -> Vec<Plant>{
         // need tick to second ratio 1:1
         // seeds start growing after 10 seconds so should add delay_growth: till specific tick to plant
         // need to add next_seed_tick as well 1 hour between seed events
         // need rng for seed count 0-Max seed count
         let mut new_plants = Vec::new();
         let mut rng = rand::thread_rng();
-        let seed_num = rng.gen_range(0..map.get_max_size());
+        let seed_num = rng.gen_range(0..seed_number);
         let mut i = 1;
         while i <= seed_num {
             let good_seed = rng.gen_range(0.0..100.0);
-            if good_seed > map.get_seed_viability() {
+            if good_seed > viability {
                 //if seed is viable make plant
                 //generate coords
                 let new_angle = rng.gen_range(0.0..360.0) as f32;
-                let new_distance = rng.gen_range(1..map.get_max_seed_cast_distance()) as f32;
-                let new_x = self.entity.get_x() + (new_distance * new_angle.cos());
-                let new_y = self.entity.get_y() + (new_distance * new_angle.sin());
-                let new_grow_tick = map.get_current_tick() + 10;
+                let new_distance = rng.gen_range(max_size..seed_distance) as f32;
+                let mut new_x = self.entity.get_x() + (new_distance * new_angle.cos());
+                let mut new_y = self.entity.get_y() + (new_distance * new_angle.sin());
+                let new_grow_tick = cur_tick + 10;
                 let new_gen = self.entity.get_gen() + 1;
+
+                //bound checking
+                if new_x < 0.0{
+                    new_x = 0.0;
+                }
+                if new_y < 0.0{
+                    new_y = 0.0;
+                }
+                if new_x > width as f32{
+                    new_x = width as f32;
+                }
+                if new_y > height as f32{
+                    new_y = height as f32;
+                }
+
+                let new_x = new_x;
+                let new_y = new_y;
 
                 let mut new_plant = Plant::new(new_x, new_y, 0.0);
                 new_plant.set_next_seed_tick(0);
@@ -668,7 +696,7 @@ impl Plant {
             }
             i += 1;
         }
-        return &mut new_plants;
+        return new_plants;
     }
 }
 
