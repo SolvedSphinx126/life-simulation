@@ -62,25 +62,55 @@ impl Map {
     }
     pub fn tick(&mut self) {
 
-        
-        
-        let mut new_plants = Vec::new();
         // let mut new_grazers = Vec::new();
         // let mut new_predators = Vec::new();
-        
+        let mut new_plants = Vec::new();
+        let mut plants_to_remove = Vec::new();
+        let max_size = self.get_max_size() as f32; // Calculate it once
 
-        for plant in self.plants.iter() {
-            let mut seeds = plant.tick(self.get_width(),self.get_height(),self.get_growth_rate(), self.get_max_size(), self.get_max_seed_cast_distance(), self.get_max_seed_number(), self.get_seed_viability(), self.get_current_tick());
+        for (index, plant) in self.plants.iter().enumerate() {
+            let mut seeds = plant.tick(
+                self.get_width(),
+                self.get_height(),
+                self.get_growth_rate(),
+                self.get_max_size(),
+                self.get_max_seed_cast_distance(),
+                self.get_max_seed_number(),
+                self.get_seed_viability(),
+                self.get_current_tick(),
+            );
             new_plants.append(&mut seeds);
+        
+            if plant.get_diameter() == 0.0 {
+                // Check if there are other plants too close
+                let is_too_close = self.plants.iter().enumerate().any(|(i, plant2)| {
+                    i != index && // Exclude the current plant
+
+                    ((plant.entity.x - plant2.entity.x).powi(2) + (plant.entity.y - plant2.entity.y).powi(2)).sqrt() < max_size
+                });
+        
+                if is_too_close {
+                    // Mark the current plant for removal
+                    plants_to_remove.push(index);
+                }
+            }
         }
-        for grazer in self.grazers.iter_mut() {
+        
+ 
+
+        for grazer in self.grazers.iter() {
             //grazer.tick(&map);
         }
-        for pred in self.predators.iter_mut() {
+        for pred in self.predators.iter() {
             //pred.tick(&map);
         }
         self.current_tick += 1;
         self.plants = new_plants;
+        // Remove plants marked for removal
+        // plants_to_remove.sort_by(|a, b| b.cmp(a)); // Sort in reverse order
+        // for index in plants_to_remove {
+        //     self.plants.remove(index);
+        // }
         
     }
 
