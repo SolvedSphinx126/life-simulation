@@ -627,7 +627,7 @@ impl Plant {
         else if self.is_max_size(max_size) && self.get_next_seed_tick() == 0{
             //first check of max size that sets next seed tick
             let mut fake_plant = self.clone();
-            fake_plant.set_next_seed_tick(cur_tick + 36); //change back to 3600 after testing
+            fake_plant.set_next_seed_tick(cur_tick + 3600); //change back to 3600 after testing
             let new_plant = fake_plant.clone();
             new_plants.push(new_plant);
         }
