@@ -1,0 +1,281 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/home/emily/.nvm/versions/node/v6.14.4/bin/node',
+1 verbose cli   '/home/emily/.nvm/versions/node/v6.14.4/bin/npm',
+1 verbose cli   'install' ]
+2 info using npm@3.10.10
+3 info using node@v6.14.4
+4 silly loadCurrentTree Starting
+5 silly install loadCurrentTree
+6 silly install readLocalPackageData
+7 silly install normalizeTree
+8 silly loadCurrentTree Finishing
+9 silly loadIdealTree Starting
+10 silly install loadIdealTree
+11 silly cloneCurrentTree Starting
+12 silly install cloneCurrentTreeToIdealTree
+13 silly cloneCurrentTree Finishing
+14 silly loadShrinkwrap Starting
+15 silly install loadShrinkwrap
+16 silly loadShrinkwrap Finishing
+17 silly loadAllDepsIntoIdealTree Starting
+18 silly install loadAllDepsIntoIdealTree
+19 silly fetchDirectoryPackageData life_simulation
+20 silly resolveWithNewModule life-simulation@0.1.0 checking installable status
+21 silly cache add args [ 'life_simulation@file:../pkg', null ]
+22 verbose cache add spec life_simulation@file:../pkg
+23 silly cache add parsed spec Result {
+23 silly cache add   raw: 'life_simulation@file:../pkg',
+23 silly cache add   scope: null,
+23 silly cache add   escapedName: 'life_simulation',
+23 silly cache add   name: 'life_simulation',
+23 silly cache add   rawSpec: 'file:../pkg',
+23 silly cache add   spec: '/home/emily/life-simulation/pkg',
+23 silly cache add   type: 'directory' }
+24 verbose addLocalDirectory /home/emily/.npm/life-simulation/0.1.0/package.tgz not in flight; packing
+25 verbose correctMkdir /home/emily/.npm correctMkdir not in flight; initializing
+26 info lifecycle life-simulation@0.1.0~prepublish: life-simulation@0.1.0
+27 silly lifecycle life-simulation@0.1.0~prepublish: no script for prepublish, continuing
+28 verbose tar pack [ '/home/emily/.npm/life-simulation/0.1.0/package.tgz',
+28 verbose tar pack   '/home/emily/life-simulation/pkg' ]
+29 verbose tarball /home/emily/.npm/life-simulation/0.1.0/package.tgz
+30 verbose folder /home/emily/life-simulation/pkg
+31 verbose addLocalTarball adding from inside cache /home/emily/.npm/life-simulation/0.1.0/package.tgz
+32 verbose correctMkdir /home/emily/.npm correctMkdir not in flight; initializing
+33 silly cache afterAdd life-simulation@0.1.0
+34 verbose afterAdd /home/emily/.npm/life-simulation/0.1.0/package/package.json not in flight; writing
+35 verbose correctMkdir /home/emily/.npm correctMkdir not in flight; initializing
+36 verbose afterAdd /home/emily/.npm/life-simulation/0.1.0/package/package.json written
+37 silly fetchNamedPackageData strip-ansi
+38 silly mapToRegistry name strip-ansi
+39 silly mapToRegistry using default registry
+40 silly mapToRegistry registry https://registry.npmjs.org/
+41 silly mapToRegistry data Result {
+41 silly mapToRegistry   raw: 'strip-ansi',
+41 silly mapToRegistry   scope: null,
+41 silly mapToRegistry   escapedName: 'strip-ansi',
+41 silly mapToRegistry   name: 'strip-ansi',
+41 silly mapToRegistry   rawSpec: '',
+41 silly mapToRegistry   spec: 'latest',
+41 silly mapToRegistry   type: 'tag' }
+42 silly mapToRegistry uri https://registry.npmjs.org/strip-ansi
+43 silly fetchNamedPackageData wrap-ansi
+44 silly mapToRegistry name wrap-ansi
+45 silly mapToRegistry using default registry
+46 silly mapToRegistry registry https://registry.npmjs.org/
+47 silly mapToRegistry data Result {
+47 silly mapToRegistry   raw: 'wrap-ansi',
+47 silly mapToRegistry   scope: null,
+47 silly mapToRegistry   escapedName: 'wrap-ansi',
+47 silly mapToRegistry   name: 'wrap-ansi',
+47 silly mapToRegistry   rawSpec: '',
+47 silly mapToRegistry   spec: 'latest',
+47 silly mapToRegistry   type: 'tag' }
+48 silly mapToRegistry uri https://registry.npmjs.org/wrap-ansi
+49 verbose request uri https://registry.npmjs.org/strip-ansi
+50 verbose request no auth needed
+51 info attempt registry request try #1 at 10:06:14 AM
+52 verbose request id efb381177f24f5e2
+53 verbose etag W/"ac0377b2d4e7fbe4eea84e483222d0a5"
+54 verbose lastModified Sun, 28 May 2023 09:55:05 GMT
+55 http request GET https://registry.npmjs.org/strip-ansi
+56 verbose request uri https://registry.npmjs.org/wrap-ansi
+57 verbose request no auth needed
+58 info attempt registry request try #1 at 10:06:14 AM
+59 verbose etag W/"ea361f92993583695c214478763df52a"
+60 verbose lastModified Wed, 02 Aug 2023 01:53:29 GMT
+61 http request GET https://registry.npmjs.org/wrap-ansi
+62 http 304 https://registry.npmjs.org/wrap-ansi
+63 verbose headers { date: 'Mon, 25 Sep 2023 15:06:15 GMT',
+63 verbose headers   connection: 'keep-alive',
+63 verbose headers   'cf-ray': '80c42b872a84b118-ATL',
+63 verbose headers   'cf-cache-status': 'HIT',
+63 verbose headers   age: '292',
+63 verbose headers   'cache-control': 'public, max-age=300',
+63 verbose headers   etag: '"ea361f92993583695c214478763df52a"',
+63 verbose headers   'last-modified': 'Wed, 02 Aug 2023 01:53:29 GMT',
+63 verbose headers   vary: 'Accept-Encoding',
+63 verbose headers   server: 'cloudflare' }
+64 silly get cb [ 304,
+64 silly get   { date: 'Mon, 25 Sep 2023 15:06:15 GMT',
+64 silly get     connection: 'keep-alive',
+64 silly get     'cf-ray': '80c42b872a84b118-ATL',
+64 silly get     'cf-cache-status': 'HIT',
+64 silly get     age: '292',
+64 silly get     'cache-control': 'public, max-age=300',
+64 silly get     etag: '"ea361f92993583695c214478763df52a"',
+64 silly get     'last-modified': 'Wed, 02 Aug 2023 01:53:29 GMT',
+64 silly get     vary: 'Accept-Encoding',
+64 silly get     server: 'cloudflare' } ]
+65 verbose etag https://registry.npmjs.org/wrap-ansi from cache
+66 verbose get saving wrap-ansi to /home/emily/.npm/registry.npmjs.org/wrap-ansi/.cache.json
+67 verbose correctMkdir /home/emily/.npm correctMkdir not in flight; initializing
+68 silly resolveWithNewModule wrap-ansi@8.1.0 checking installable status
+69 silly cache add args [ 'wrap-ansi@^8.1.0', null ]
+70 verbose cache add spec wrap-ansi@^8.1.0
+71 silly cache add parsed spec Result {
+71 silly cache add   raw: 'wrap-ansi@^8.1.0',
+71 silly cache add   scope: null,
+71 silly cache add   escapedName: 'wrap-ansi',
+71 silly cache add   name: 'wrap-ansi',
+71 silly cache add   rawSpec: '^8.1.0',
+71 silly cache add   spec: '>=8.1.0 <9.0.0',
+71 silly cache add   type: 'range' }
+72 silly addNamed wrap-ansi@>=8.1.0 <9.0.0
+73 verbose addNamed ">=8.1.0 <9.0.0" is a valid semver range for wrap-ansi
+74 silly addNameRange { name: 'wrap-ansi', range: '>=8.1.0 <9.0.0', hasData: false }
+75 silly mapToRegistry name wrap-ansi
+76 silly mapToRegistry using default registry
+77 silly mapToRegistry registry https://registry.npmjs.org/
+78 silly mapToRegistry data Result {
+78 silly mapToRegistry   raw: 'wrap-ansi',
+78 silly mapToRegistry   scope: null,
+78 silly mapToRegistry   escapedName: 'wrap-ansi',
+78 silly mapToRegistry   name: 'wrap-ansi',
+78 silly mapToRegistry   rawSpec: '',
+78 silly mapToRegistry   spec: 'latest',
+78 silly mapToRegistry   type: 'tag' }
+79 silly mapToRegistry uri https://registry.npmjs.org/wrap-ansi
+80 verbose addNameRange registry:https://registry.npmjs.org/wrap-ansi not in flight; fetching
+81 verbose get https://registry.npmjs.org/wrap-ansi not expired, no request
+82 silly addNameRange number 2 { name: 'wrap-ansi', range: '>=8.1.0 <9.0.0', hasData: true }
+83 silly addNameRange versions [ 'wrap-ansi',
+83 silly addNameRange   [ '0.1.0',
+83 silly addNameRange     '0.2.0',
+83 silly addNameRange     '0.3.0',
+83 silly addNameRange     '1.0.0',
+83 silly addNameRange     '2.0.0',
+83 silly addNameRange     '2.1.0-candidate',
+83 silly addNameRange     '2.1.0',
+83 silly addNameRange     '3.0.0',
+83 silly addNameRange     '3.0.1',
+83 silly addNameRange     '4.0.0',
+83 silly addNameRange     '5.0.0',
+83 silly addNameRange     '5.1.0',
+83 silly addNameRange     '6.0.0',
+83 silly addNameRange     '6.1.0',
+83 silly addNameRange     '6.2.0',
+83 silly addNameRange     '7.0.0',
+83 silly addNameRange     '8.0.0',
+83 silly addNameRange     '8.0.1',
+83 silly addNameRange     '8.1.0' ] ]
+84 silly addNamed wrap-ansi@8.1.0
+85 verbose addNamed "8.1.0" is a plain semver version for wrap-ansi
+86 silly cache afterAdd wrap-ansi@8.1.0
+87 verbose afterAdd /home/emily/.npm/wrap-ansi/8.1.0/package/package.json not in flight; writing
+88 verbose correctMkdir /home/emily/.npm correctMkdir not in flight; initializing
+89 verbose afterAdd /home/emily/.npm/wrap-ansi/8.1.0/package/package.json written
+90 http 304 https://registry.npmjs.org/strip-ansi
+91 verbose headers { date: 'Mon, 25 Sep 2023 15:06:15 GMT',
+91 verbose headers   connection: 'keep-alive',
+91 verbose headers   'cf-ray': '80c42b872f0b244b-ATL',
+91 verbose headers   'cf-cache-status': 'HIT',
+91 verbose headers   age: '136',
+91 verbose headers   'cache-control': 'public, max-age=300',
+91 verbose headers   etag: '"ac0377b2d4e7fbe4eea84e483222d0a5"',
+91 verbose headers   'last-modified': 'Sun, 28 May 2023 09:55:05 GMT',
+91 verbose headers   vary: 'Accept-Encoding',
+91 verbose headers   server: 'cloudflare' }
+92 silly get cb [ 304,
+92 silly get   { date: 'Mon, 25 Sep 2023 15:06:15 GMT',
+92 silly get     connection: 'keep-alive',
+92 silly get     'cf-ray': '80c42b872f0b244b-ATL',
+92 silly get     'cf-cache-status': 'HIT',
+92 silly get     age: '136',
+92 silly get     'cache-control': 'public, max-age=300',
+92 silly get     etag: '"ac0377b2d4e7fbe4eea84e483222d0a5"',
+92 silly get     'last-modified': 'Sun, 28 May 2023 09:55:05 GMT',
+92 silly get     vary: 'Accept-Encoding',
+92 silly get     server: 'cloudflare' } ]
+93 verbose etag https://registry.npmjs.org/strip-ansi from cache
+94 verbose get saving strip-ansi to /home/emily/.npm/registry.npmjs.org/strip-ansi/.cache.json
+95 verbose correctMkdir /home/emily/.npm correctMkdir not in flight; initializing
+96 silly resolveWithNewModule strip-ansi@7.1.0 checking installable status
+97 silly cache add args [ 'strip-ansi@^7.0.1', null ]
+98 verbose cache add spec strip-ansi@^7.0.1
+99 silly cache add parsed spec Result {
+99 silly cache add   raw: 'strip-ansi@^7.0.1',
+99 silly cache add   scope: null,
+99 silly cache add   escapedName: 'strip-ansi',
+99 silly cache add   name: 'strip-ansi',
+99 silly cache add   rawSpec: '^7.0.1',
+99 silly cache add   spec: '>=7.0.1 <8.0.0',
+99 silly cache add   type: 'range' }
+100 silly addNamed strip-ansi@>=7.0.1 <8.0.0
+101 verbose addNamed ">=7.0.1 <8.0.0" is a valid semver range for strip-ansi
+102 silly addNameRange { name: 'strip-ansi', range: '>=7.0.1 <8.0.0', hasData: false }
+103 silly mapToRegistry name strip-ansi
+104 silly mapToRegistry using default registry
+105 silly mapToRegistry registry https://registry.npmjs.org/
+106 silly mapToRegistry data Result {
+106 silly mapToRegistry   raw: 'strip-ansi',
+106 silly mapToRegistry   scope: null,
+106 silly mapToRegistry   escapedName: 'strip-ansi',
+106 silly mapToRegistry   name: 'strip-ansi',
+106 silly mapToRegistry   rawSpec: '',
+106 silly mapToRegistry   spec: 'latest',
+106 silly mapToRegistry   type: 'tag' }
+107 silly mapToRegistry uri https://registry.npmjs.org/strip-ansi
+108 verbose addNameRange registry:https://registry.npmjs.org/strip-ansi not in flight; fetching
+109 verbose get https://registry.npmjs.org/strip-ansi not expired, no request
+110 silly addNameRange number 2 { name: 'strip-ansi', range: '>=7.0.1 <8.0.0', hasData: true }
+111 silly addNameRange versions [ 'strip-ansi',
+111 silly addNameRange   [ '0.1.0',
+111 silly addNameRange     '0.1.1',
+111 silly addNameRange     '0.2.0',
+111 silly addNameRange     '0.2.1',
+111 silly addNameRange     '0.2.2',
+111 silly addNameRange     '0.3.0',
+111 silly addNameRange     '1.0.0',
+111 silly addNameRange     '2.0.0',
+111 silly addNameRange     '2.0.1',
+111 silly addNameRange     '3.0.0',
+111 silly addNameRange     '3.0.1',
+111 silly addNameRange     '4.0.0',
+111 silly addNameRange     '5.0.0',
+111 silly addNameRange     '5.1.0',
+111 silly addNameRange     '5.2.0',
+111 silly addNameRange     '6.0.0',
+111 silly addNameRange     '7.0.0',
+111 silly addNameRange     '7.0.1',
+111 silly addNameRange     '6.0.1',
+111 silly addNameRange     '7.1.0' ] ]
+112 silly addNamed strip-ansi@7.1.0
+113 verbose addNamed "7.1.0" is a plain semver version for strip-ansi
+114 silly cache afterAdd strip-ansi@7.1.0
+115 verbose afterAdd /home/emily/.npm/strip-ansi/7.1.0/package/package.json not in flight; writing
+116 verbose correctMkdir /home/emily/.npm correctMkdir not in flight; initializing
+117 verbose afterAdd /home/emily/.npm/strip-ansi/7.1.0/package/package.json written
+118 silly rollbackFailedOptional Starting
+119 silly rollbackFailedOptional Finishing
+120 silly runTopLevelLifecycles Finishing
+121 silly install printInstalled
+122 warn optional SKIPPING OPTIONAL DEPENDENCY: strip-ansi-cjs@npm:strip-ansi@^6.0.1 (node_modules/npm/node_modules/@isaacs/cliui/node_modules/strip-ansi-cjs):
+123 warn optional SKIPPING OPTIONAL DEPENDENCY: Unsupported URL Type: npm:strip-ansi@^6.0.1
+124 verbose optional SKIPPING OPTIONAL DEPENDENCY:
+124 verbose optional If you need help, you may report this error at:
+124 verbose optional SKIPPING OPTIONAL DEPENDENCY:     <https://github.com/npm/npm/issues>
+125 warn optional SKIPPING OPTIONAL DEPENDENCY: wrap-ansi-cjs@npm:wrap-ansi@^7.0.0 (node_modules/npm/node_modules/@isaacs/cliui/node_modules/wrap-ansi-cjs):
+126 warn optional SKIPPING OPTIONAL DEPENDENCY: Unsupported URL Type: npm:wrap-ansi@^7.0.0
+127 verbose optional SKIPPING OPTIONAL DEPENDENCY:
+127 verbose optional If you need help, you may report this error at:
+127 verbose optional SKIPPING OPTIONAL DEPENDENCY:     <https://github.com/npm/npm/issues>
+128 verbose stack Error: Unsupported URL Type: npm:string-width@^4.2.0
+128 verbose stack     at parseUrl (/home/emily/.nvm/versions/node/v6.14.4/lib/node_modules/npm/node_modules/npm-package-arg/npa.js:186:13)
+128 verbose stack     at npa (/home/emily/.nvm/versions/node/v6.14.4/lib/node_modules/npm/node_modules/npm-package-arg/npa.js:79:12)
+128 verbose stack     at module.exports (/home/emily/.nvm/versions/node/v6.14.4/lib/node_modules/npm/node_modules/realize-package-specifier/index.js:12:15)
+128 verbose stack     at childDependencySpecifier (/home/emily/.nvm/versions/node/v6.14.4/lib/node_modules/npm/lib/install/deps.js:104:3)
+128 verbose stack     at addDependency (/home/emily/.nvm/versions/node/v6.14.4/lib/node_modules/npm/lib/install/deps.js:442:3)
+128 verbose stack     at /home/emily/.nvm/versions/node/v6.14.4/lib/node_modules/npm/lib/install/deps.js:401:5
+128 verbose stack     at /home/emily/.nvm/versions/node/v6.14.4/lib/node_modules/npm/node_modules/slide/lib/async-map.js:52:35
+128 verbose stack     at Array.forEach (native)
+128 verbose stack     at /home/emily/.nvm/versions/node/v6.14.4/lib/node_modules/npm/node_modules/slide/lib/async-map.js:52:11
+128 verbose stack     at Array.forEach (native)
+129 verbose cwd /home/emily/life-simulation/www
+130 error Linux 5.15.90.1-microsoft-standard-WSL2
+131 error argv "/home/emily/.nvm/versions/node/v6.14.4/bin/node" "/home/emily/.nvm/versions/node/v6.14.4/bin/npm" "install"
+132 error node v6.14.4
+133 error npm  v3.10.10
+134 error Unsupported URL Type: npm:string-width@^4.2.0
+135 error If you need help, you may report this error at:
+135 error     <https://github.com/npm/npm/issues>
+136 verbose exit [ 1, true ]
