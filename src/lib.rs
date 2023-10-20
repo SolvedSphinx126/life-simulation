@@ -270,6 +270,16 @@ impl Map {
     }
 
     //predators
+    fn get_predator_by_id(&self, id: Option<&Uuid>) -> Option<&Predator> {
+        match id {
+            Some(id) => self
+                .predators
+                .iter()
+                .filter(|pred| pred.get_entity().get_id() == *id)
+                .next(),
+            None => None,
+        }
+    }
     pub fn get_init_predator_count(&self) -> u32 {
         self.init_predator_count
     }
