@@ -146,20 +146,26 @@ impl Map {
             .collect::<js_sys::Array>()
     }
 
-    pub fn get_rocks_size(&self) -> u32 {
+    fn get_predators_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Predator> {
         
+        self.predators
+            .iter()
+            .filter(|pred| get_length(pred.mover.entity.x - x, pred.mover.entity.y - y) < max_dist)
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|pred: &Predator| pred.clone())
+            .collect::<Vec<Predator>>()
+    }
+
+    pub fn get_rocks_size(&self) -> u32 {
         self.rocks.len() as u32
     }
     pub fn get_plants_size(&self) -> u32 {
-        
         self.plants.len() as u32
     }
     pub fn get_grazers_size(&self) -> u32 {
-        
         self.grazers.len() as u32
     }
     pub fn get_predators_size(&self) -> u32 {
-        
         self.predators.len() as u32
     }
 
