@@ -41,7 +41,7 @@ pub struct Map {
     predator_energy_output: u32,
     predator_energy_to_reproduce: u32,
     predator_max_offspring: u32,
-    predator_gestation: f32,
+    predator_gestation: u64,
     predator_offspring_energy: u32,
 
     rocks: Vec<Rock>,
@@ -290,7 +290,7 @@ impl Map {
     pub fn get_predator_max_offspring(&self) -> u32 {
         self.predator_max_offspring
     }
-    pub fn get_predator_gestation(&self) -> f32 {
+    pub fn get_predator_gestation(&self) -> u64 {
         self.predator_gestation
     }
     pub fn get_predator_offspring_energy(&self) -> u32 {
@@ -317,8 +317,8 @@ impl Map {
     pub fn set_predator_energy_to_reproduce(&mut self, new_predator_energy_to_reproduce: u32) {
         self.predator_energy_to_reproduce = new_predator_energy_to_reproduce;
     }
-    pub fn set_predator_gestation(&mut self, new_predator_gestation: f32) {
-        self.predator_gestation = new_predator_gestation;
+    pub fn set_predator_gestation(&mut self, new_predator_gestation: u32) {
+        self.predator_gestation = new_predator_gestation as u64;
     }
     pub fn set_predator_offspring_energy(&mut self, new_predator_offspring_energy: u32) {
         self.predator_offspring_energy = new_predator_offspring_energy;
