@@ -55,11 +55,10 @@ impl Map {
     pub fn new() -> Map {
         Map::default()
     }
-    pub fn get_current_tick(&self) -> u64 {
+    fn get_current_tick(&self) -> u64 {
         self.current_tick
     }
     pub fn tick(&mut self) {
-
         // let mut new_grazers = Vec::new();
         // let mut new_predators = Vec::new();
         let mut new_plants = Vec::new();
@@ -78,7 +77,7 @@ impl Map {
                 self.get_current_tick(),
             );
             new_plants.append(&mut seeds);
-        
+
             if plant.get_diameter() == 0.0 {
                 // Check if there are other plants too close
                 let is_too_close = self.plants.iter().enumerate().any(|(i, plant2)| {
@@ -109,7 +108,6 @@ impl Map {
         // for index in plants_to_remove {
         //     self.plants.remove(index);
         // }
-        
     }
 
     pub fn get_width(&self) -> u32 {
@@ -373,7 +371,7 @@ impl Entity {
     fn set_y(&mut self, new_y: f32) {
         self.y = new_y;
     }
-    fn set_gen(&mut self, new_gen: u32){
+    fn set_gen(&mut self, new_gen: u32) {
         self.generation = new_gen;
     }
 }
@@ -586,7 +584,6 @@ pub struct Plant {
     diameter: f32,
     next_seed_tick: u64,
     grow_tick: u64,
-
 }
 
 #[wasm_bindgen]
@@ -601,54 +598,56 @@ impl Plant {
     pub fn get_diameter(&self) -> f32 {
         self.diameter
     }
-    fn tick(&self,width:u32,height:u32, growth_rate: f32, max_size: u32, seed_distance: u32, seed_number: u32, viability: f32, cur_tick: u64) -> Vec<Plant>{
-        
+    fn tick(
+        &self,
+        width: u32,
+        height: u32,
+        growth_rate: f32,
+        max_size: u32,
+        seed_distance: u32,
+        seed_number: u32,
+        viability: f32,
+        cur_tick: u64,
+    ) -> Vec<Plant> {
         let mut new_plants = Vec::new();
 
-        if self.get_diameter() == 0.0 && self.grow_tick == cur_tick{
+        if self.get_diameter() == 0.0 && self.grow_tick == cur_tick {
             //first growth
-            let growth_rate =   growth_rate * max_size as f32;
+            let growth_rate = growth_rate * max_size as f32;
             let mut fake_plant = self.clone();
             fake_plant.grow(growth_rate);
             let new_plant = fake_plant.clone();
             new_plants.push(new_plant);
-        }
-        else if self.is_max_size(max_size) && self.get_next_seed_tick() == cur_tick{
+        } else if self.is_max_size(max_size) && self.get_next_seed_tick() == cur_tick {
             //any seed event
-            let mut copy_thingy = self.seed(width, height, max_size,seed_distance, seed_number, viability, cur_tick);
+            let mut copy_thingy = self.seed(
+                width, height, max_size, seed_distance, seed_number, viability, cur_tick,
+            );
             new_plants.append(&mut copy_thingy);
             let new_plant = self.clone();
             new_plants.push(new_plant)
-
-
-        }
-        else if self.is_max_size(max_size) && self.get_next_seed_tick() == 0{
+        } else if self.is_max_size(max_size) && self.get_next_seed_tick() == 0 {
             //first check of max size that sets next seed tick
             let mut fake_plant = self.clone();
             fake_plant.set_next_seed_tick(cur_tick + 3600); //change back to 3600 after testing
             let new_plant = fake_plant.clone();
             new_plants.push(new_plant);
-        }
-        else if !self.is_max_size(max_size){
+        } else if !self.is_max_size(max_size) {
             //all growth other than first after seed
             let mut fake_plant = self.clone();
-            let growth_rate =   growth_rate * max_size as f32;
+            let growth_rate = growth_rate * max_size as f32;
             fake_plant.grow(growth_rate);
             let new_plant = fake_plant.clone();
             new_plants.push(new_plant)
-            
-        }
-        else{
+        } else {
             let plant = self.clone();
             new_plants.push(plant);
         }
         return new_plants;
-        // an example of a mutable borrow of map is in map.tick 
-		//at the end where the tick is incremented
-        
+        // an example of a mutable borrow of map is in map.tick
+        //at the end where the tick is incremented
     }
     fn is_max_size(&self, max_size: u32) -> bool {
-
         return self.diameter >= (max_size as f32);
     }
     fn get_next_seed_tick(&self) -> u64 {
@@ -683,7 +682,16 @@ impl Plant {
         }
         self.diameter += growth_add;
     }
-    fn seed(&self, width: u32, height: u32, max_size: u32, seed_distance: u32, seed_number: u32, viability: f32, cur_tick: u64) -> Vec<Plant>{
+    fn seed(
+        &self,
+        width: u32,
+        height: u32,
+        max_size: u32,
+        seed_distance: u32,
+        seed_number: u32,
+        viability: f32,
+        cur_tick: u64,
+    ) -> Vec<Plant> {
         // need tick to second ratio 1:1
         // seeds start growing after 10 seconds so should add delay_growth: till specific tick to plant
         // need to add next_seed_tick as well 1 hour between seed events
@@ -705,16 +713,16 @@ impl Plant {
                 let new_gen = self.entity.get_gen() + 1;
 
                 //bound checking
-                if new_x < 0.0{
+                if new_x < 0.0 {
                     new_x = 0.0;
                 }
-                if new_y < 0.0{
+                if new_y < 0.0 {
                     new_y = 0.0;
                 }
-                if new_x > width as f32{
+                if new_x > width as f32 {
                     new_x = width as f32;
                 }
-                if new_y > height as f32{
+                if new_y > height as f32 {
                     new_y = height as f32;
                 }
 
@@ -748,8 +756,8 @@ pub struct Predator {
 
 #[wasm_bindgen]
 impl Predator {
-    fn new(new_x: f32, new_y: f32, new_energy: i32, new_gen_seq: String) -> Predator {
-        Predator {
+    pub fn new(new_x: f32, new_y: f32, new_energy: u32, new_gen_seq: String) -> Predator {
+        let mut new = Predator {
             mover: Mover::new(new_x, new_y, new_energy),
             gen_seq: new_gen_seq,
             ..Default::default()
