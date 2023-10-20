@@ -1,16 +1,14 @@
-//use wasm_bindgen::prelude::*;
-
 #[wasm_bindgen]
 extern "C" {
     fn alert(s: &str);
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
 }
-use std::{cell::RefCell, rc::Rc};
 
 use rand::Rng;
 use uuid::Uuid;
-
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
-
+mod utils;
+use wasm_bindgen::{prelude::*, JsValue};
 
 #[derive(Default)]
 #[wasm_bindgen]
