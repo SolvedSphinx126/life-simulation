@@ -173,11 +173,11 @@ impl Map {
         let new_plant = Plant::new(x, y, diameter);
         self.plants.push(new_plant);
     }
-    pub fn add_grazer(&mut self, new_x: f32, new_y: f32, new_energy: i32) {
+    pub fn add_grazer(&mut self, new_x: f32, new_y: f32, new_energy: u32) {
         let new_grazer = Grazer::new(new_x, new_y, new_energy);
         self.grazers.push(new_grazer);
     }
-    pub fn add_predator(&mut self, new_x: f32, new_y: f32, new_energy: i32, new_gen_seq: String) {
+    pub fn add_predator(&mut self, new_x: f32, new_y: f32, new_energy: u32, new_gen_seq: String) {
         let new_predator = Predator::new(new_x, new_y, new_energy, new_gen_seq);
         self.predators.push(new_predator)
     }
@@ -399,15 +399,15 @@ pub struct Mover {
     orientation: f32,
     target_x: f32,
     target_y: f32,
-    energy: i32,
+    energy: u32,
+    du: f32,
 }
 
 #[wasm_bindgen]
 impl Mover {
-    //fn new(new_id: u32, new_x:i32, new_y: i32, new_state: i32, new_velocity_x: i32, new_velocity_y: i32, new_orientation: f32, new_target_x: i32,new_target_y: i32, new_energy: i32) -> Mover {
     //Mover { entity: Entity::default(), state: new_state, velocity_x: new_velocity_x, velocity_y: new_velocity_y, orientation: new_orientation, target_x: new_target_x, target_y: new_target_y, energy: new_energy }
     //}
-    fn new(new_x: f32, new_y: f32, new_energy: i32) -> Mover {
+    fn new(new_x: f32, new_y: f32, new_energy: u32) -> Mover {
         Mover {
             energy: new_energy,
             entity: Entity {
@@ -441,10 +441,10 @@ impl Mover {
     fn get_target_y(&self) -> f32 {
         self.target_y
     }
-    fn get_energy(&self) -> i32 {
+    fn get_energy(&self) -> u32 {
         self.energy
     }
-    pub fn get_entity(&self) -> Entity {
+    fn get_entity(&self) -> Entity {
         self.entity
     }
     fn set_state(&mut self, new_state: i32) {
@@ -466,7 +466,7 @@ impl Mover {
     fn set_target_y(&mut self, new_target_y: f32) {
         self.target_y = new_target_y;
     }
-    fn set_energy(&mut self, new_energy: i32) {
+    fn set_energy(&mut self, new_energy: u32) {
         self.energy = new_energy;
     }
 }
@@ -541,7 +541,7 @@ pub struct Grazer {
 
 #[wasm_bindgen]
 impl Grazer {
-    fn new(new_x: f32, new_y: f32, new_energy: i32) -> Grazer {
+    fn new(new_x: f32, new_y: f32, new_energy: u32) -> Grazer {
         Grazer {
             mover: Mover {
                 entity: Entity {
