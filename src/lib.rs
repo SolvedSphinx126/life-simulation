@@ -85,22 +85,38 @@ impl Map {
 
                     ((plant.entity.x - plant2.entity.x).powi(2) + (plant.entity.y - plant2.entity.y).powi(2)).sqrt() < max_size
                 });
-        
+
                 if is_too_close {
                     // Mark the current plant for removal
                     plants_to_remove.push(index);
                 }
             }
         }
-        
- 
 
         for grazer in self.grazers.iter() {
             //grazer.tick(&map);
         }
+
+        let mut preds = vec![];
+
         for pred in self.predators.iter() {
-            //pred.tick(&map);
+            preds.append(&mut pred.clone().tick(
+                self.predator_energy_to_reproduce,
+                self.current_tick,
+                self.predator_energy_output,
+                self.get_predators_within_vicinity(
+                    pred.mover.get_entity().get_x(),
+                    pred.mover.get_entity().get_y(),
+                    5.0,
+                ),
+                self.predator_max_offspring,
+                self.predator_offspring_energy,
+                self.get_predator_gestation(),
+                self.get_predator_by_id(pred.family.get(0)),
+            ));
         }
+        self.predators = preds;
+
         self.current_tick += 1;
         self.plants = new_plants;
         // Remove plants marked for removal
@@ -432,9 +448,17 @@ impl Mover {
             ..Default::default()
         }
     }
-    fn tick(&mut self) {
-        self.entity.x += self.velocity_x;
-        self.entity.y += self.velocity_y;
+    fn tick(&mut self, max_speed: f32, energy: u32) {
+        if self.energy > 500 {
+            self.entity.x += self.velocity_x;
+            self.entity.y += self.velocity_y;
+
+            self.du += f32::sqrt(self.entity.x.powi(2) + self.entity.y.powi(2));
+            if self.du > 5.0 {
+                self.du -= 5.0;
+                self.energy -= energy;
+            }
+        }
     }
     fn get_state(&self) -> i32 {
         //change to enum in future
@@ -497,6 +521,7 @@ impl Default for Mover {
             target_x: 0.0,
             target_y: 0.0,
             energy: 0,
+            du: 0.0,
         }
     }
 }
@@ -569,8 +594,8 @@ impl Grazer {
             ..Default::default()
         }
     }
-    fn tick(&mut self, _map: &RefCell<&mut Map>) {
-        self.mover.tick();
+    fn tick(&mut self, energy: u32) {
+        self.mover.tick(5.0, energy);
     }
 
     fn get_ticks_in_loc(&self) -> i32 {
@@ -761,13 +786,14 @@ impl Plant {
 #[derive(Clone, Default)]
 #[wasm_bindgen]
 pub struct Predator {
-    mover: Mover,
-    gen_seq: String,
-    family: Vec<i32>, //vector of family ids
-    time_family: u64, // time after mating that predator cares about family
+    pub mover: Mover,
+    family: Vec<Uuid>, //vector of family ids
+    time_family: u64,  // time after mating that predator cares about family
     is_pregnant: bool,
     ticks_til_birth: u64, // the first tick where the gestation period is over
-    mate_gen_seq: String, // mates gennetic sequence
+    agression: Gene,
+    strength: Gene,
+    speed: Gene,
 }
 
 #[wasm_bindgen]
@@ -775,9 +801,10 @@ impl Predator {
     pub fn new(new_x: f32, new_y: f32, new_energy: u32, new_gen_seq: String) -> Predator {
         let mut new = Predator {
             mover: Mover::new(new_x, new_y, new_energy),
-            gen_seq: new_gen_seq,
             ..Default::default()
-        }
+        };
+        new.parse_gen_seq(new_gen_seq);
+        new
     }
     pub fn get_mover(&self) -> Mover {
         self.mover
@@ -785,15 +812,88 @@ impl Predator {
     pub fn get_entity(&self) -> Entity {
         self.mover.entity
     }
-    fn tick(&mut self, _map: &RefCell<&mut Map>) {
-        // an example of a mutable borrow of map is in map.tick 
-		//at the end where the tick is incremented
-        self.mover.tick();
+    fn tick(
+        &mut self,
+        energy_to_reproduce: u32,
+        cur_tick: u64,
+        energy: u32,
+        preds: Vec<Predator>,
+        max_offspring: u32,
+        offspring_energy: u32,
+        gestation: u64,
+        partner: Option<&Predator>,
+    ) -> Vec<Predator> {
+        let mut ret = vec![];
+        // if energy and not pregnant
+        // has a mate
+        // mate
+        // perform birth() for both parents
+        // add birthed predators to ret
+        // set is_pregnant
+        // set gestation
+        // add mate to avoid list
+
+        // need to filter for avoid list
+
+        let pred = preds
+            .iter()
+            .filter(|p| p.willing_to_mate(energy_to_reproduce))
+            .filter(|p| p.get_entity().get_id() != self.get_entity().get_id())            
+            //.inspect(|pred| log(pred.get_entity().get_id().to_string().as_str()))
+            .next();
+
+        if self.willing_to_mate(energy_to_reproduce) {
+            // if vaible candidate is found
+            if let Some(pred) = pred {
+                self.mate(&mut pred.clone(), cur_tick, gestation);
+                log("viable mate found");
+            }
+        } else if self.is_pregnant {
+            if self.get_ticks_til_birth() < cur_tick {
+                if let Some(partner) = partner {
+                    ret.append(&mut self.birth(
+                        max_offspring,
+                        offspring_energy,
+                        partner.clone(),
+                        energy_to_reproduce,
+                        self.get_entity().get_x(),
+                        self.get_entity().get_y()
+                    ));
+                }
+            }
+        }
+
+        //self.mover.tick(5.0, energy);
+        ret.push(self.clone());
+        ret
     }
-    fn get_gen_seq(&self) -> String {
-        self.gen_seq.clone()
+    fn willing_to_mate(&self, rep_energy: u32) -> bool {
+        (self.mover.energy >= rep_energy) && !self.is_pregnant
     }
-    fn get_family(&self) -> Vec<i32> {
+    pub fn get_gen_seq(&self) -> String {
+        let ag = match self.agression {
+            Gene::Hetero => "Hetero agression, ",
+            Gene::HomoDominant => "Homo Dom agression, ",
+            Gene::HomoRecessive => "Homo Rec agression, ",
+        }
+        .to_owned();
+
+        let strength = match self.strength {
+            Gene::Hetero => "Hetero strength, ",
+            Gene::HomoDominant => "Homo Dom strength, ",
+            Gene::HomoRecessive => "Homo Rec strength, ",
+        }
+        .to_owned();
+
+        let speed = match self.speed {
+            Gene::Hetero => "Hetero speed",
+            Gene::HomoDominant => "Homo Dom speed",
+            Gene::HomoRecessive => "Homo Rec speed",
+        }
+        .to_owned();
+        format!("{}{}{}", ag, strength, speed)
+    }
+    fn get_family(&self) -> Vec<Uuid> {
         self.family.clone()
     }
     fn get_time_family(&self) -> u64 {
@@ -805,16 +905,10 @@ impl Predator {
     fn get_ticks_til_birth(&self) -> u64 {
         self.ticks_til_birth
     }
-    fn get_mate_seq(&self) -> String {
-        self.mate_gen_seq.clone()
+    fn get_mate_seq(&self) -> (Gene, Gene, Gene) {
+        (self.agression, self.strength, self.speed)
     }
-    fn set_gen_seq(&mut self, new_gen_seq: String) {
-        self.gen_seq = new_gen_seq;
-    }
-    fn set_familiy(&mut self, new_family: Vec<i32>) {
-        self.family = new_family;
-    }
-    fn add_family(&mut self, new_fam_id: i32) {
+    fn add_family(&mut self, new_fam_id: Uuid) {
         self.family.push(new_fam_id);
     }
     fn set_time_family(&mut self, new_time_family: u64) {
@@ -823,10 +917,147 @@ impl Predator {
     fn set_is_pregnant(&mut self, is_pregnant: bool) {
         self.is_pregnant = is_pregnant;
     }
-    fn set_ticks_til_birth(&mut self, map: Map, new_time_til_birth: u64) {
-        self.ticks_til_birth = new_time_til_birth + map.get_current_tick();
+    fn set_ticks_til_birth(&mut self, new_time_til_birth: u64) {
+        self.ticks_til_birth = new_time_til_birth;
     }
-    fn set_mate_gen_seq(&mut self, new_mate_gen_seq: String) {
-        self.mate_gen_seq = new_mate_gen_seq;
+    fn parse_gen_seq(&mut self, new_mate_gen_seq: String) {
+        // need genetic code verification and error handling
+        if new_mate_gen_seq.contains("aa") {
+            self.agression = Gene::HomoRecessive;
+        } else if new_mate_gen_seq.contains("Aa") {
+            self.agression = Gene::Hetero;
+        } else if new_mate_gen_seq.contains("AA") {
+            self.agression = Gene::HomoDominant;
+        }
+        if new_mate_gen_seq.contains("ss") {
+            self.strength = Gene::HomoRecessive;
+        } else if new_mate_gen_seq.contains("Ss") {
+            self.strength = Gene::Hetero;
+        } else if new_mate_gen_seq.contains("SS") {
+            self.strength = Gene::HomoDominant;
+        }
+        if new_mate_gen_seq.contains("ff") {
+            self.speed = Gene::HomoRecessive;
+        } else if new_mate_gen_seq.contains("Ff") {
+            self.speed = Gene::Hetero;
+        } else if new_mate_gen_seq.contains("FF") {
+            self.speed = Gene::HomoDominant;
+        }
     }
+
+    fn mate_genes(parent1: &Predator, parent2: &Predator) -> (Gene, Gene, Gene) {
+        (
+            parent1.agression.mate(parent2.agression),
+            parent1.strength.mate(parent2.strength),
+            parent1.speed.mate(parent2.speed),
+        )
+    }
+    fn mate(&mut self, other: &mut Predator, cur_tick: u64, gestation: u64) {
+        self.set_is_pregnant(true);
+        other.set_is_pregnant(true);
+        self.set_ticks_til_birth(cur_tick + gestation);
+        other.set_ticks_til_birth(cur_tick + gestation);
+        self.add_family(other.get_entity().get_id());
+        other.add_family(self.get_entity().get_id());
+    }
+    fn birth(
+        &mut self,
+        max_offspring: u32,
+        new_energy: u32,
+        other: Predator,
+        energy_to_reproduce: u32,
+        new_x: f32,
+        new_y: f32,
+    ) -> Vec<Predator> {
+        let mut preds = vec![];
+
+        let children = rand::thread_rng().gen_range(0..=max_offspring);
+
+        // loop through each child
+        for _ in 0..children {
+            let new_genes = Predator::mate_genes(self, &other);
+            let new_pred = Predator {
+                agression: new_genes.0,
+                strength: new_genes.1,
+                speed: new_genes.2,
+                mover: Mover {
+                    energy: new_energy,
+                    entity: Entity {
+                        x: new_x,
+                        y: new_y,
+                        ..Default::default()
+                        //TODO add generation??
+                    },
+                    ..Default::default()
+                },
+                ..Default::default()
+            };
+            //TODO need to add family logic
+            preds.push(new_pred);
+        }
+        self.mover.energy -= energy_to_reproduce;
+        self.set_is_pregnant(false);
+        preds
+    }
+}
+
+#[derive(Clone, Copy, Default)]
+#[wasm_bindgen]
+pub enum Gene {
+    HomoDominant,
+    #[default]
+    Hetero,
+    HomoRecessive,
+}
+
+impl Gene {
+    fn mate(self, other: Gene) -> Gene {
+        let rand: u8 = rand::thread_rng().gen_range(0..4);
+        match (self, other) {
+            (Gene::HomoDominant, Gene::HomoDominant) => Gene::HomoDominant,
+            (Gene::HomoRecessive, Gene::HomoRecessive) => Gene::HomoRecessive,
+            (Gene::HomoDominant, Gene::HomoRecessive) => Gene::Hetero,
+            (Gene::HomoRecessive, Gene::HomoDominant) => Gene::Hetero,
+            (Gene::HomoDominant, Gene::Hetero) => match rand {
+                0..=1 => Gene::Hetero,
+                2..=3 => Gene::HomoDominant,
+                _ => {
+                    panic!()
+                }
+            },
+            (Gene::Hetero, Gene::HomoDominant) => match rand {
+                0..=1 => Gene::Hetero,
+                2..=3 => Gene::HomoDominant,
+                _ => {
+                    panic!()
+                }
+            },
+            (Gene::HomoRecessive, Gene::Hetero) => match rand {
+                0..=1 => Gene::Hetero,
+                2..=3 => Gene::HomoRecessive,
+                _ => {
+                    panic!()
+                }
+            },
+            (Gene::Hetero, Gene::HomoRecessive) => match rand {
+                0..=1 => Gene::Hetero,
+                2..=3 => Gene::HomoRecessive,
+                _ => {
+                    panic!()
+                }
+            },
+            (Gene::Hetero, Gene::Hetero) => match rand {
+                0 => Gene::HomoDominant,
+                1..=2 => Gene::Hetero,
+                3 => Gene::HomoRecessive,
+                _ => {
+                    panic!()
+                }
+            },
+        }
+    }
+}
+
+fn get_length(x: f32, z: f32) -> f32 {
+    return f32::sqrt((x * x) + (z * z));
 }
