@@ -73,8 +73,15 @@ const render = async () => {
     requestAnimationFrame(render);
 }
 
+const printStats = async () => {
+    console.log(`There are ${map.get_grazers().length} grazers.`);
+    console.log(`There are ${map.get_predators().length} predators.`);
+    console.log(`There are ${map.get_plants().length} plants.`);
+    await new Promise(r => setTimeout(r, 1000));
+    printStats();
+}
+
 const map = Map.new();
-render()
 
 var fileInputElement = document.getElementById("file-input");
 fileInputElement.addEventListener("change", e => fileInputElement.files[0].text().then((xmlText) => {
@@ -161,6 +168,6 @@ fileInputElement.addEventListener("change", e => fileInputElement.files[0].text(
     console.log(map.get_predators())
     console.log(map.get_plants())
 
-    
-    
+    printStats();
+    render()
 }));
