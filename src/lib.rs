@@ -449,7 +449,7 @@ impl Mover {
         }
     }
     fn tick(&mut self, max_speed: f32, energy: u32) {
-        if self.energy > 500 {
+        if self.energy > 5 {
             self.entity.x += self.velocity_x;
             self.entity.y += self.velocity_y;
 
@@ -863,7 +863,7 @@ impl Predator {
             }
         }
 
-        //self.mover.tick(5.0, energy);
+        self.mover.tick(5.0, energy);
         ret.push(self.clone());
         ret
     }

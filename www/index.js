@@ -69,16 +69,14 @@ const render = async () => {
     drawPredators();
     drawGrazers();
     map.tick();
-    await new Promise(r => setTimeout(r, 50));
-    requestAnimationFrame(render);
-}
-
-const printStats = async () => {
-    console.log(`There are ${map.get_grazers().length} grazers.`);
-    console.log(`There are ${map.get_predators().length} predators.`);
-    console.log(`There are ${map.get_plants().length} plants.`);
+    let predCount = document.getElementById("predCount");
+    predCount.innerHTML = map.get_predators().length;
+    let grazerCount = document.getElementById("grazerCount");
+    grazerCount.innerHTML = map.get_grazers().length;
+    let plantCount = document.getElementById("plantCount");
+    plantCount.innerHTML = map.get_plants().length;
     await new Promise(r => setTimeout(r, 1000));
-    printStats();
+    requestAnimationFrame(render);
 }
 
 const map = Map.new();
@@ -168,6 +166,5 @@ fileInputElement.addEventListener("change", e => fileInputElement.files[0].text(
     console.log(map.get_predators())
     console.log(map.get_plants())
 
-    printStats();
     render()
 }));
