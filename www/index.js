@@ -59,6 +59,11 @@ const drawGrazers = () => {
     }
 }
 
+var msToWait = 1000;
+function setWait(msWait) {
+    msToWait = msWait;
+}
+
 const render = async () => {
     ctx.canvas.width = ctx.canvas.clientWidth
     ctx.canvas.height = ctx.canvas.clientHeight
@@ -69,13 +74,32 @@ const render = async () => {
     drawPredators();
     drawGrazers();
     map.tick();
-    await new Promise(r => setTimeout(r, 50));
+    let predCount = document.getElementById("predCount");
+    predCount.innerHTML = map.get_predators().length;
+    let grazerCount = document.getElementById("grazerCount");
+    grazerCount.innerHTML = map.get_grazers().length;
+    let plantCount = document.getElementById("plantCount");
+    plantCount.innerHTML = map.get_plants().length;
+    await new Promise(r => setTimeout(r, msToWait));
     requestAnimationFrame(render);
 }
 
 const map = Map.new();
-render()
 
+var fileInputElement = document.getElementById("10x");
+fileInputElement.addEventListener("click", e => {
+    setWait(100)
+})
+
+var fileInputElement = document.getElementById("50x");
+fileInputElement.addEventListener("click", e => {
+    setWait(20)
+})
+
+var fileInputElement = document.getElementById("100x");
+fileInputElement.addEventListener("click", e => {
+    setWait(10)
+})
 var fileInputElement = document.getElementById("file-input");
 fileInputElement.addEventListener("change", e => fileInputElement.files[0].text().then((xmlText) => {
     var xmlText = xmlText.replace(/\s/g,"");
@@ -161,6 +185,5 @@ fileInputElement.addEventListener("change", e => fileInputElement.files[0].text(
     console.log(map.get_predators())
     console.log(map.get_plants())
 
-    
-    
+    render()
 }));
