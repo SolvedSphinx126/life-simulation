@@ -59,11 +59,12 @@ impl Map {
         self.current_tick
     }
     pub fn tick(&mut self) {
-        // let mut new_grazers = Vec::new();
+        let mut new_grazers = Vec::new();
         // let mut new_predators = Vec::new();
         let mut new_plants = Vec::new();
         let mut plants_to_remove = Vec::new();
         let max_size = self.get_max_size() as f32; // Calculate it once
+        let maintain_speed_ticks = (self.grazer_maintain_speed * 60.0) as u64;
 
         for (index, plant) in self.plants.iter().enumerate() {
             let mut seeds = plant.tick(
@@ -94,9 +95,15 @@ impl Map {
         }
 
         for grazer in self.grazers.iter() {
-            //grazer.tick(&map);
+            new_grazers.append(&mut grazer.clone().tick(self.get_grazer_energy_input(),
+            self.get_grazer_energy_output(),
+            self.get_grazer_energy_to_reproduce(),
+            self.get_grazer_max_speed(),
+            maintain_speed_ticks,
+            self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 150.0),
+            self.get_current_tick()
+            ));
         }
-
         let mut preds = vec![];
 
         for pred in self.predators.iter() {
@@ -162,8 +169,27 @@ impl Map {
             .collect::<js_sys::Array>()
     }
 
-    fn get_predators_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Predator> {
+    fn get_plants_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Plant> {
         
+        self.plants
+            .iter()
+            .filter(|plant| get_length(plant.entity.x - x, plant.entity.y - y) < max_dist)
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|plant: &Plant| plant.clone())
+            .collect::<Vec<Plant>>()
+    }
+
+    fn get_grazers_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Grazer> {
+        
+        self.grazers
+            .iter()
+            .filter(|graz| get_length(graz.mover.entity.x - x, graz.mover.entity.y - y) < max_dist)
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|graz: &Grazer| graz.clone())
+            .collect::<Vec<Grazer>>()
+    }
+
+    fn get_predators_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Predator> {
         self.predators
             .iter()
             .filter(|pred| get_length(pred.mover.entity.x - x, pred.mover.entity.y - y) < max_dist)
@@ -431,6 +457,7 @@ pub struct Mover {
     target_y: f32,
     energy: u32,
     du: f32,
+    max_speed: f32,
 }
 
 #[wasm_bindgen]
@@ -507,159 +534,142 @@ impl Mover {
     fn set_energy(&mut self, new_energy: u32) {
         self.energy = new_energy;
     }
-fn get_length(x: f64, z: f64) -> f64
-{
-	return f64::sqrt((x*x) + (z*z));
-}
+    fn get_length(x: f64, z: f64) -> f64 {
+        return f64::sqrt((x * x) + (z * z));
+    }
 
+    fn normalize(mut x: f32, mut z: f32) -> (f32, f32) {
+        let distance = get_length(x, z);
+        x = x / distance;
+        z = z / distance;
+        return (x, z);
+    }
 
-fn normalize(mut x: f64, mut z: f64) -> (f64, f64)
-{
-	let distance = get_length(x, z);
-	x = x / distance;
-	z = z / distance;
-	return (x, z);
-}
+    fn seek(mut char: &mut Mover, target: Entity, delta_time: f32) -> &Mover {
+        let mut result_x = 0.0;
+        let mut result_y = 0.0;
 
+        result_x = target.x - char.entity.x;
+        result_y = target.y - char.entity.y;
 
-fn seek (mut char: &mut Mover, target: Entity, delta_time: f64) -> &Mover
-{
-	let mut result_x = 0.0;
-	let mut result_y = 0.0;
+        (result_x, result_y) = Mover::normalize(result_x, result_y);
+        result_x = result_x * char.max_speed;
+        result_y = result_y * char.max_speed;
 
-	result_x = target.x - char.entity.x;
-	result_y = target.y - char.entity.y;
+        return Mover::update(result_x, result_y, char, delta_time);
+    }
 
-	(result_x, result_y) = normalize(result_x, result_y);
-	result_x = result_x * char.max_accel;
-	result_y = result_y * char.max_accel;
-	
-	return update(result_x, result_y, char, delta_time);
-}
+    fn flee(mut char: &mut Mover, target: Entity, delta_time: f32) -> &Mover {
+        let mut result_x = 0.0;
+        let mut result_y = 0.0;
 
+        result_x = char.entity.x - target.x;
+        result_y = char.entity.y - target.y;
 
-fn flee (mut char: &mut Mover, target: Entity, delta_time: f64) -> &Mover
-{
-	let mut result_x = 0.0;
-	let mut result_y = 0.0;
+        (result_x, result_y) = Mover::normalize(result_x, result_y);
+        result_x = result_x * char.max_speed;
+        result_y = result_y * char.max_speed;
 
-	result_x = char.entity.x - target.x;
-	result_y = char.entity.y - target.y;
+        return Mover::update(result_x, result_y, char, delta_time);
+    }
 
-	(result_x, result_y) = normalize(result_x, result_y);
-	result_x = result_x * char.max_accel;
-	result_y = result_y * char.max_accel;
-	
-	return update(result_x, result_y, char, delta_time);
-}
+    fn arrive(mut char: &mut Mover, target: Entity, delta_time: f32) -> &Mover {
+        let mut result_x = 0.0;
+        let mut result_y = 0.0;
+        let mut goalSpeed = 0.0;
+        let mut direction_x = 0.0;
+        let mut direction_y = 0.0;
 
+        direction_x = target.x - char.entity.x;
+        direction_y = target.y - char.entity.y;
 
-fn arrive (mut char: &mut Mover, target: Entity, delta_time: f64) -> &Mover
-{
-	let mut result_x = 0.0;
-	let mut result_y = 0.0;
-	let mut goalSpeed = 0.0;
-	let mut direction_x = 0.0;
-	let mut direction_y = 0.0;
+        let distance = get_length(direction_x, direction_y);
 
-	direction_x = target.x - char.entity.x;
-	direction_y = target.y - char.entity.y;
+        if distance < 1.0
+        //This may need to be tested and fixed later.
+        {
+            return char;
+        }
 
-	let distance = get_length(direction_x, direction_y);
+        if distance > 1.5
+        //This will also need to be tested.
+        {
+            goalSpeed = char.max_speed;
+        } else {
+            goalSpeed = char.max_speed * distance / 1.5 //The 1.5 is the slow radius, this needs to be tested.
+        }
 
-	if distance < 1.0 //This may need to be tested and fixed later.
-	{
-		return char;
-	}
+        let mut goal_velocity_x = direction_x;
+        let mut goal_velocity_y = direction_y;
 
-	if distance > 1.5 //This will also need to be tested. 	
-	{
-		goalSpeed = char.velocity;
-	}
+        (goal_velocity_x, goal_velocity_y) = Mover::normalize(goal_velocity_x, goal_velocity_y);
+        goal_velocity_x = goal_velocity_x * goalSpeed;
+        goal_velocity_y = goal_velocity_y * goalSpeed;
 
-	else
-	{
-		goalSpeed = char.velocity * distance / 1.5 //The 1.5 is the slow radius, this needs to be tested.
-	}
+        result_x = goal_velocity_x - char.entity.x;
+        result_y = goal_velocity_y - char.entity.y;
 
-	let mut goal_velocity_x = direction_x;
-	let mut goal_velocity_y = direction_y;
-	
-	(goal_velocity_x, goal_velocity_y) = normalize(goal_velocity_x, goal_velocity_y);
-	goal_velocity_x = goal_velocity_x * goalSpeed;
-	goal_velocity_y = goal_velocity_y * goalSpeed;
+        /* These 2 lines might not be necessary, maybe need testing? maybe not?
+        result_x = result_x / char.ttt;
+        result_y = result_y / char.ttt;
+        */
 
-	result_x = goal_velocity_x - char.entity.x;
-	result_y = goal_velocity_y - char.entity.y;
-	
-	/* These 2 lines might not be necessary, maybe need testing? maybe not?
-	result_x = result_x / char.ttt; 
-	result_y = result_y / char.ttt;	
-	*/
+        return Mover::update(result_x, result_y, char, delta_time);
+    }
 
-	return update(result_x, result_y, char, delta_time);
-}
+    fn wander(mut char: &mut Mover, delta_time: f32) -> &Mover {
+        let maxRotation = 15.0;
+        let mut result_x = 0.0;
+        let mut result_y = 0.0;
+        let mut result_orien = 0.0;
+        let num = rand::thread_rng().gen_range(-1.0..1.0);
 
+        result_x = char.max_speed * char.orientation.sin() * 0.75;
+        result_y = char.max_speed * char.orientation.cos() * 0.75;
+        result_orien = num * maxRotation;
 
-fn wander(mut char: &mut Mover, delta_time: f64) ->&Mover
-{
-	let maxRotation = 15.0;
-	let mut result_x = 0.0;
-	let mut result_y = 0.0;
-	let mut result_orien = 0.0;
-	let num = rand::thread_rng().gen_range(-1.0..1.0);
+        return Mover::kinematicupdate(result_x, result_y, result_orien, char, delta_time);
+    }
 
-	result_x = char.velocity * char.orientation.sin();
-	result_y = char.velocity * char.orientation.cos();
-	result_orien = num * maxRotation;
-	
-	return kinematicupdate(result_x, result_y, result_orien, char, delta_time);
-}
+    fn update(result_x: f32, result_y: f32, char: &mut Mover, delta_time: f32) -> &Mover {
+        char.entity.x += char.velocity_x * delta_time;
+        char.entity.y += char.velocity_y * delta_time;
 
-fn update(result_x: f64, result_y: f64, char: &mut Mover, delta_time: f64) -> &Mover
-{
-	char.entity.x += char.velocity_x * delta_time;
-	char.entity.y += char.velocity_y * delta_time;
-    
+        char.velocity_x += result_x * delta_time;
+        char.velocity_y += result_y * delta_time;
 
-	char.velocity_x += result_x * delta_time;
-	char.velocity_y += result_y * delta_time;
+        if get_length(char.velocity_x, char.velocity_y) > char.max_speed {
+            let (velocity_x, velocity_y) = Mover::normalize(char.velocity_x, char.velocity_y);
+            char.velocity_x = velocity_x * char.max_speed;
+            char.velocity_y = velocity_y * char.max_speed;
+        }
 
-    
+        return char;
+    }
 
+    fn kinematicupdate(
+        result_x: f32,
+        result_y: f32,
+        result_orien: f32,
+        char: &mut Mover,
+        delta_time: f32,
+    ) -> &Mover {
+        char.entity.x += char.velocity_x * delta_time;
+        char.entity.y += char.velocity_y * delta_time;
+        char.orientation += char.orientation * delta_time;
 
-	if get_length(char.velocity_x, char.velocity_y) > char.velocity
-	{
-		let (velocity_x, velocity_y) = normalize(char.velocity_x, char.velocity_y);
-		char.velocity_x = velocity_x * char.velocity;
-		char.velocity_y = velocity_y * char.velocity;
-	}
-    
+        char.velocity_x += result_x * delta_time;
+        char.velocity_y += result_y * delta_time;
+        char.orientation += result_orien * delta_time;
 
-	return char;
-}
+        if get_length(char.velocity_x, char.velocity_y) > char.max_speed {
+            let (velocity_x, velocity_y) = Mover::normalize(char.velocity_x, char.velocity_y);
+            char.velocity_x = velocity_x * char.max_speed;
+            char.velocity_y = velocity_y * char.max_speed;
+        }
 
-fn kinematicupdate(result_x: f64, result_y: f64, result_orien: f64, char: &mut Mover, delta_time: f64) -> &Mover
-{
-	char.entity.x += char.velocity_x * delta_time;
-	char.entity.y += char.velocity_y * delta_time;
-	char.orientation += char.rotation * delta_time;
-
-	
-	char.velocity_x += result_x * delta_time;
-	char.velocity_y += result_y * delta_time;
-	char.rotation += result_orien * delta_time;
-
-	if get_length(char.velocity_x, char.velocity_y) > char.velocity
-	{
-		let (velocity_x, velocity_y) = normalize(char.velocity_x, char.velocity_y);
-		char.velocity_x = velocity_x * char.velocity;
-		char.velocity_y = velocity_y * char.velocity;
-	}
-
-	return char;
-}
-
+        return char;
+    }
 }
 
 impl Default for Mover {
@@ -675,6 +685,7 @@ impl Default for Mover {
             target_y: 0.0,
             energy: 0,
             du: 0.0,
+            max_speed: 0.0
         }
     }
 }
@@ -747,8 +758,21 @@ impl Grazer {
             ..Default::default()
         }
     }
-    fn tick(&mut self, energy: u32) {
-        self.mover.tick(5.0, energy);
+    fn tick( self, 
+        energy_in: u32,
+        energy_out: u32,
+        energy_reproduce: u32,
+        max_speed: f32,
+        maintain_speed: u64,
+        plants: Vec<Plant>,
+        cur_tick: u64,
+    ) -> Vec<Grazer> {
+
+        let new_graz = Vec::new();
+
+        return new_graz;
+        // self.mover.tick(5.0, energy);
+
     }
 
     fn get_ticks_in_loc(&self) -> i32 {
@@ -815,7 +839,13 @@ impl Plant {
         } else if self.is_max_size(max_size) && self.get_next_seed_tick() == cur_tick {
             //any seed event
             let mut copy_thingy = self.seed(
-                width, height, max_size, seed_distance, seed_number, viability, cur_tick,
+                width,
+                height,
+                max_size,
+                seed_distance,
+                seed_number,
+                viability,
+                cur_tick,
             );
             new_plants.append(&mut copy_thingy);
             let new_plant = self.clone();
@@ -991,7 +1021,7 @@ impl Predator {
         let pred = preds
             .iter()
             .filter(|p| p.willing_to_mate(energy_to_reproduce))
-            .filter(|p| p.get_entity().get_id() != self.get_entity().get_id())            
+            .filter(|p| p.get_entity().get_id() != self.get_entity().get_id())
             //.inspect(|pred| log(pred.get_entity().get_id().to_string().as_str()))
             .next();
 
@@ -1010,7 +1040,7 @@ impl Predator {
                         partner.clone(),
                         energy_to_reproduce,
                         self.get_entity().get_x(),
-                        self.get_entity().get_y()
+                        self.get_entity().get_y(),
                     ));
                 }
             }
@@ -1138,8 +1168,7 @@ impl Predator {
                     entity: Entity {
                         x: new_x,
                         y: new_y,
-                        ..Default::default()
-                        //TODO add generation??
+                        ..Default::default() //TODO add generation??
                     },
                     ..Default::default()
                 },
