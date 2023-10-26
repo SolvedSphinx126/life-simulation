@@ -101,6 +101,8 @@ impl Map {
             self.get_grazer_max_speed(),
             maintain_speed_ticks,
             self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 150.0),
+            self.get_predators_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 25.0),
+
             self.get_current_tick()
             ));
         }
@@ -187,6 +189,16 @@ impl Map {
             //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
             .map(|graz: &Grazer| graz.clone())
             .collect::<Vec<Grazer>>()
+    }
+
+    fn get_rocks_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Rock> {
+        
+        self.rocks
+            .iter()
+            .filter(|rock| get_length(rock.entity.x - x, rock.entity.y - y) < max_dist)
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|rock: &Rock| rock.clone())
+            .collect::<Vec<Rock>>()
     }
 
     fn get_predators_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Predator> {
@@ -765,6 +777,7 @@ impl Grazer {
         max_speed: f32,
         maintain_speed: u64,
         plants: Vec<Plant>,
+        predatros: Vec<Predator>,
         cur_tick: u64,
     ) -> Vec<Grazer> {
 
