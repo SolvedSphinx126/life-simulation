@@ -7,7 +7,15 @@ extern "C" {
 
 use rand::Rng;
 use uuid::Uuid;
+use std::fs::OpenOptions;
+use std::io::Write;
+use chrono::prelude::*;
+use std::string::ToString;
+use std::io::prelude::*;
+use std::iter::Once;
+use std::fs::File;
 mod utils;
+use std::env;
 use wasm_bindgen::{prelude::*, JsValue};
 
 #[derive(Default)]
@@ -393,6 +401,94 @@ impl Map {
     }
     pub fn set_predator_max_offspring(&mut self, new_predator_max_offspring: u32) {
         self.predator_max_offspring = new_predator_max_offspring;
+    }
+    pub fn generate_report(&self){
+
+        //create a dynamic file with timestamp
+    	let dt = Utc::now();
+	    let mut file_path: String = env::current_dir().unwrap().display().to_string(); 
+	    let mut filename: String = "/results/SimulationReport-".to_owned();
+	    file_path.push_str(&filename);
+	    file_path.push_str(&dt.hour().to_string());
+	    file_path.push_str(":");
+	    file_path.push_str(&dt.minute().to_string());
+	    file_path.push_str(":");
+	    file_path.push_str(&dt.second().to_string());
+	    file_path.push_str(".txt");
+    	File::create(file_path.clone()).unwrap();
+    	let mut file = OpenOptions::new().write(true).open(file_path).unwrap();
+
+    	//%H:%M:%S does not work
+    	let mut file = OpenOptions::new().write(true).open(filename).unwrap();
+    	
+    	file.write_all(format!("SIMULATION DATA\n\n").as_bytes());
+    	
+    	//Print plant data
+    	file.write_all(format!("Plants: {} \n", self.plants.len()).as_bytes());
+    	
+    	for plant in self.plants.iter(){
+            file.write_all(format!("Plant").as_bytes());
+    		file.write_all(format!("ID: {}", plant.entity.id).as_bytes());
+    		file.write_all(format!("X Position: {}", plant.entity.x).as_bytes());
+    		file.write_all(format!("Y Position: {}", plant.entity.y).as_bytes());
+    		file.write_all(format!("Generation: {}", plant.entity.generation).as_bytes());
+    		//file.write_all(format!("Energy: ").as_bytes()); NEED TO ADD ENERGY
+    		file.write_all(format!("Diameter: {}", plant.diameter).as_bytes());
+    		file.write_all(format!("\n").as_bytes());
+    	}
+    	file.write_all(format!("\n\n").as_bytes());
+    	
+    	//Print grazer data
+    	file.write_all(format!("Grazers: {}\n", self.grazers.len()).as_bytes());
+    	
+    	for grazer in self.grazers.iter(){
+            file.write_all(format!("Grazer").as_bytes());
+    		file.write_all(format!("ID: {}", grazer.mover.entity.id).as_bytes());
+    		file.write_all(format!("X Position: {}", grazer.mover.entity.x).as_bytes());
+    		file.write_all(format!("Y Position: {}", grazer.mover.entity.y).as_bytes());
+    		file.write_all(format!("Generation: {}", grazer.mover.entity.generation).as_bytes());
+    		file.write_all(format!("State: {}", grazer.mover.state).as_bytes());//this may change on our enum plan
+    		file.write_all(format!("X Velocity: {}", grazer.mover.velocity_x).as_bytes());
+    		file.write_all(format!("Y Velocity: {}", grazer.mover.velocity_y).as_bytes());
+    		file.write_all(format!("Orentation: {}", grazer.mover.orientation).as_bytes());
+    		file.write_all(format!("Target X Position: {}", grazer.mover.target_x).as_bytes());
+    		file.write_all(format!("Target Y Position: {}", grazer.mover.target_y).as_bytes());
+    		file.write_all(format!("Du: {}", grazer.mover.du).as_bytes());
+    		file.write_all(format!("Energy: {}", grazer.mover.energy).as_bytes());
+    		file.write_all(format!("\n").as_bytes());
+    	}
+    	file.write_all(format!("\n\n").as_bytes());
+    	
+        //Print Predators
+    	file.write_all(format!("Predators: {}\n", self.predators.len()).as_bytes());
+    	
+    	for predator in self.predators.iter(){
+            file.write_all(format!("Predator").as_bytes());
+    		file.write_all(format!("ID: {}", predator.mover.entity.id).as_bytes());
+    		file.write_all(format!("X Position: {}", predator.mover.entity.x).as_bytes());
+    		file.write_all(format!("Y Position: {}", predator.mover.entity.y).as_bytes());
+    		file.write_all(format!("Generation: {}", predator.mover.entity.generation).as_bytes());
+    		file.write_all(format!("State: {}", predator.mover.state).as_bytes());//this may change on our enum plan
+    		file.write_all(format!("X Velocity: {}", predator.mover.velocity_x).as_bytes());
+    		file.write_all(format!("Y Velocity: {}", predator.mover.velocity_y).as_bytes());
+    		file.write_all(format!("Orentation: {}", predator.mover.orientation).as_bytes());
+    		file.write_all(format!("Target X Position: {}", predator.mover.target_x).as_bytes());
+    		file.write_all(format!("Target Y Position: {}", predator.mover.target_y).as_bytes());
+    		file.write_all(format!("Du: {}", predator.mover.du).as_bytes());
+            file.write_all(format!("Energy: {}", predator.mover.energy).as_bytes());
+    		file.write_all(format!("Genes: {:?}{:?}{:?}", predator.speed, predator.strength, predator.agression).as_bytes());
+    		file.write_all(format!("Is Pregnant: {}", predator.is_pregnant).as_bytes());
+    		file.write_all(format!("Time as Family: {}", predator.time_family).as_bytes());
+    		//print kids
+    		for child in predator.family.iter(){
+    			file.write_all(format!("Child's ID: {}", child).as_bytes());
+    		}
+    		file.write_all(format!("\n").as_bytes());
+    	
+    	}
+    	file.write_all(format!("END REPORT\n").as_bytes());
+    	//file auto closes as it leaves scope or this function
+        
     }
 }
 
@@ -1196,7 +1292,7 @@ impl Predator {
     }
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Debug)]
 #[wasm_bindgen]
 pub enum Gene {
     HomoDominant,
