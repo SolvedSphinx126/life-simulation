@@ -407,7 +407,7 @@ impl Map {
         //create a dynamic file with timestamp
     	let dt = Utc::now();
 	    let mut file_path: String = env::current_dir().unwrap().display().to_string(); 
-	    let mut filename: String = "/results/SimulationReport-".to_owned();
+	    let mut filename: String = "/reports/SimulationReport-".to_owned();
 	    file_path.push_str(&filename);
 	    file_path.push_str(&dt.hour().to_string());
 	    file_path.push_str(":");
