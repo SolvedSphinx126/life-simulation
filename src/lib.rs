@@ -1250,3 +1250,7 @@ impl Gene {
 fn get_length(x: f32, z: f32) -> f32 {
     return f32::sqrt((x * x) + (z * z));
 }
+
+fn dot_product(endpoint1: (f32, f32), endpoint2: (f32, f32)) -> f32 {
+    endpoint1.0 * endpoint2.0 + endpoint1.1 * endpoint2.1
+}
