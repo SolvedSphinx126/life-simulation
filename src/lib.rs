@@ -95,13 +95,18 @@ impl Map {
         }
 
         for grazer in self.grazers.iter() {
-            new_grazers.append(&mut grazer.clone().tick(self.get_grazer_energy_input(),
-            self.get_grazer_energy_output(),
-            self.get_grazer_energy_to_reproduce(),
-            self.get_grazer_max_speed(),
-            maintain_speed_ticks,
-            self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 150.0),
-            self.get_current_tick()
+            new_grazers.append(&mut grazer.clone().tick(
+                self.get_grazer_energy_input(),
+                self.get_grazer_energy_output(),
+                self.get_grazer_energy_to_reproduce(),
+                self.get_grazer_max_speed(),
+                maintain_speed_ticks,
+                self.get_plants_within_vicinity(
+                    grazer.mover.entity.x,
+                    grazer.mover.entity.y,
+                    150.0,
+                ),
+                self.get_current_tick(),
             ));
         }
         let mut preds = vec![];
@@ -712,7 +717,7 @@ impl Default for Mover {
             target_y: 0.0,
             energy: 0,
             du: 0.0,
-            max_speed: 0.0
+            max_speed: 0.0,
         }
     }
 }
@@ -785,7 +790,8 @@ impl Grazer {
             ..Default::default()
         }
     }
-    fn tick( self, 
+    fn tick(
+        self,
         energy_in: u32,
         energy_out: u32,
         energy_reproduce: u32,
@@ -794,12 +800,10 @@ impl Grazer {
         plants: Vec<Plant>,
         cur_tick: u64,
     ) -> Vec<Grazer> {
-
         let new_graz = Vec::new();
 
         return new_graz;
         // self.mover.tick(5.0, energy);
-
     }
 
     fn get_ticks_in_loc(&self) -> i32 {
@@ -866,13 +870,7 @@ impl Plant {
         } else if self.is_max_size(max_size) && self.get_next_seed_tick() == cur_tick {
             //any seed event
             let mut copy_thingy = self.seed(
-                width,
-                height,
-                max_size,
-                seed_distance,
-                seed_number,
-                viability,
-                cur_tick,
+                width, height, max_size, seed_distance, seed_number, viability, cur_tick,
             );
             new_plants.append(&mut copy_thingy);
             let new_plant = self.clone();
