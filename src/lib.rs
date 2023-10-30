@@ -133,6 +133,26 @@ impl Map {
         // }
     }
 
+    fn check_sight_line(&self, t1x: f32, t1y: f32, t2x: f32, t2y: f32) -> bool {
+        let midpoint = ((t1x + t2x) / 2.0, (t1y + t2y) / 2.0);
+        let dist = get_length(t2x - t1x, t2y - t1y);
+        let possible_obstructions =
+            self.get_rocks_within_vicinity(midpoint.0, midpoint.1, dist / 2.0);
+        let true_obstructions = possible_obstructions
+            .iter()
+            .filter(|rock| {
+                check_single_sight_line(
+                    (rock.entity.get_x(), rock.entity.get_y()),
+                    (t1x, t1y),
+                    (t2x, t2y),
+                    rock.get_diameter() as f32 / 2.0,
+                )
+            })
+            .collect::<Vec<&Rock>>();
+
+        true_obstructions.is_empty()
+    }
+
     pub fn get_width(&self) -> u32 {
         self.width
     }
@@ -1253,4 +1273,39 @@ fn get_length(x: f32, z: f32) -> f32 {
 
 fn dot_product(endpoint1: (f32, f32), endpoint2: (f32, f32)) -> f32 {
     endpoint1.0 * endpoint2.0 + endpoint1.1 * endpoint2.1
+}
+
+// returns true if there is an obstruction
+fn check_single_sight_line(
+    center: (f32, f32),
+    endpoint1: (f32, f32),
+    endpoint2: (f32, f32),
+    radius: f32,
+) -> bool {
+    let dot_product = dot_product(
+        (center.0 - endpoint1.0, center.1 - endpoint1.1),
+        (endpoint2.0 - endpoint1.0, endpoint2.1 - endpoint1.1),
+    );
+    let square_mag = get_length(endpoint2.0 - endpoint1.0, endpoint2.0 - endpoint1.0);
+
+    let t = dot_product / square_mag;
+
+    let point_to_test;
+    if t <= 0.0 {
+        point_to_test = endpoint1;
+    } else if t >= 1.0 {
+        point_to_test = endpoint2;
+    } else {
+        point_to_test = (
+            t * (endpoint2.0 - endpoint1.0),
+            t * (endpoint2.1 - endpoint1.1),
+        );
+    }
+
+    let vec_from_center_to_test_point = (center.0 - point_to_test.0, center.1 - point_to_test.1);
+
+    get_length(
+        vec_from_center_to_test_point.0,
+        vec_from_center_to_test_point.1,
+    ) < radius
 }
