@@ -170,7 +170,6 @@ impl Map {
     }
 
     fn get_plants_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Plant> {
-        
         self.plants
             .iter()
             .filter(|plant| get_length(plant.entity.x - x, plant.entity.y - y) < max_dist)
@@ -179,8 +178,16 @@ impl Map {
             .collect::<Vec<Plant>>()
     }
 
+    fn get_rocks_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Rock> {
+        self.rocks
+            .iter()
+            .filter(|plant| get_length(plant.entity.x - x, plant.entity.y - y) < max_dist)
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|rock: &Rock| rock.clone())
+            .collect::<Vec<Rock>>()
+    }
+
     fn get_grazers_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Grazer> {
-        
         self.grazers
             .iter()
             .filter(|graz| get_length(graz.mover.entity.x - x, graz.mover.entity.y - y) < max_dist)
