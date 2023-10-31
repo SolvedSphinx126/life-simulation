@@ -909,7 +909,11 @@ impl Grazer {
             self.mover.tick(max_speed, energy_out, self.mover.entity);
         }
         
-        new_graz.push(self.clone());
+        // only add grazers worthy of life
+        if self.mover.energy != 0{
+            new_graz.push(self.clone());
+        }
+        
 
         return new_graz;
         // self.mover.tick(5.0, energy);
