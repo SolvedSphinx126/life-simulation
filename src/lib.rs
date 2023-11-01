@@ -777,6 +777,7 @@ pub struct Grazer {
     mover: Mover,
     ticks_in_loc: i32, //minutes in cur location without moving max is 10 once at 10 need to move
     ticks_at_speed: i32,
+    is_chased: bool,
 }
 
 #[wasm_bindgen]
@@ -811,16 +812,23 @@ impl Grazer {
         //to integrate sight just change the function called when tick is called in map.
         let mut new_graz = Vec::new();
         let mut ded_plants = Vec::new();
-        if self.mover.energy > 25{
+        if self.mover.energy > 25 && self.ticks_at_speed < maintain_speed{
             self.mover.max_speed = max_speed;
         }
         else if self.mover.energy <= 25 {
             self.mover.max_speed = 10.0;
         }
+        else if self.ticks_at_speed > maintain_speed{
+            self.mover.max_speed = max_speed * 0.75;
+        }
+        if ! self.is_chased{
+            self.ticks_at_speed = 0;
+        }
         
         log(format!("current tick is {}", cur_tick).as_str());
         //first check for predators to run from
         if !predators.is_empty(){
+            self.is_chased = true;
             //seek rock away from closest pred
             //set movers target
             self.mover.state = 1; //set state to arrive
@@ -859,12 +867,14 @@ impl Grazer {
              }
         }
         else if self.mover.energy >= energy_reproduce {
+            
             new_graz.push(self.reproduce());
         }
         // here means no predators
         // check if at food for plant in 5 du
         // been at plant
         else if !at_plants.is_empty() && self.ticks_in_loc != 0{
+            self.is_chased = false;
             //now check if tick at loc is at max
             self.mover.state = 0;
             log(format!("tick in loc {}", self.ticks_in_loc).as_str());
@@ -878,6 +888,7 @@ impl Grazer {
                 //seek next plant   
             }
             else {
+                
                 //then if not max stay
                 //gain energy on 100 increments
                 self.ticks_in_loc += 1;
@@ -890,6 +901,7 @@ impl Grazer {
         }
         // first tick at plant
         else if !at_plants.is_empty() && self.ticks_in_loc == 0{
+            self.is_chased = false;
             // just arrived at plant
             self.mover.state = 0;
             self.ticks_in_loc += 1;
@@ -898,6 +910,7 @@ impl Grazer {
 
     
         else if at_plants.is_empty() && !plants.is_empty(){
+            self.is_chased = false;
             //find closest plant and set arrive target
             self.mover.state = 1;
             let mut min_dist = 0.0 as f32;
@@ -912,6 +925,7 @@ impl Grazer {
             self.mover.tick(max_speed, energy_out, closest_plant.entity);
         }
         else{
+            self.is_chased = false;
             //start wandering
             self.mover.state = 2;
             self.mover.tick(max_speed, energy_out, self.mover.entity);
