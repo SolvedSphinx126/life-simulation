@@ -890,7 +890,7 @@ impl Grazer {
             else {
                 
                 //then if not max stay
-                //gain energy on 100 increments
+                //gain energy on 60 increments
                 self.ticks_in_loc += 1;
                 if self.ticks_in_loc % 60 == 0 {
                     self.mover.energy += energy_in;
