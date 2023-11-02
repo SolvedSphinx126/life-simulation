@@ -206,7 +206,7 @@ impl Map {
     fn get_rocks_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Rock> {
         self.rocks
             .iter()
-            .filter(|plant| get_length(plant.entity.x - x, plant.entity.y - y) < max_dist)
+            .filter(|rock| get_length(rock.entity.x - x, rock.entity.y - y) < max_dist)
             //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
             .map(|rock: &Rock| rock.clone())
             .collect::<Vec<Rock>>()
