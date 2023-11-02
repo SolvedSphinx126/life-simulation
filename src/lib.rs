@@ -138,6 +138,7 @@ impl Map {
         // }
     }
 
+    // returns true if the sight line is not blocked
     fn check_sight_line(&self, t1x: f32, t1y: f32, t2x: f32, t2y: f32) -> bool {
         let midpoint = ((t1x + t2x) / 2.0, (t1y + t2y) / 2.0);
         let dist = get_length(t2x - t1x, t2y - t1y);
