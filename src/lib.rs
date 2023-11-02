@@ -93,8 +93,10 @@ impl Map {
             self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 5.0),
             self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 150.0),
             self.get_predators_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 25.0),
-            self.get_rocks_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 50.0),
-            self.get_current_tick()
+            self.get_rocks_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 150.0),
+            self.get_current_tick(),
+            self.width,
+            self.height
             );
              new_grazers.append(&mut weird.0); 
             plants_to_remove.append(&mut weird.1);
@@ -102,7 +104,7 @@ impl Map {
         let mut preds = vec![];
 
         for pred in self.predators.iter() {
-            preds.append(&mut pred.clone().tick(
+            let mut weird = pred.clone().tick(
                 self.predator_energy_to_reproduce,
                 self.current_tick,
                 self.predator_energy_output,
@@ -111,11 +113,24 @@ impl Map {
                     pred.mover.get_entity().get_y(),
                     5.0,
                 ),
+                self.get_predators_within_vicinity(
+                    pred.mover.get_entity().get_x(),
+                    pred.mover.get_entity().get_y(),
+                    5.0,
+                ),
+                self.get_rocks_within_vicinity(pred.mover.entity.x,pred.mover.entity.y, 150.0),
+                self.get_grazers_within_vicinity(pred.mover.entity.x, pred.mover.entity.y, 150.0),
                 self.predator_max_offspring,
                 self.predator_offspring_energy,
                 self.get_predator_gestation(),
                 self.get_predator_by_id(pred.family.get(0)),
-            ));
+                self.max_speed_hod,
+                self.max_speed_hed,
+                self.max_speed_hor,
+                self.predator_maintain_speed,
+                self.width,
+                self.height
+            );
         }
         self.predators = preds;
         self.grazers = new_grazers;
@@ -807,6 +822,8 @@ impl Grazer {
         predators: Vec<Predator>, //25 du
         rocks: Vec<Rock>, // 50 du
         cur_tick: u64,
+        width: u32,
+        height: u32
     ) -> (Vec<Grazer>, Vec<Plant>) {
         //plants and predator is a vector of creatures with distance sight is not yet implemented 
         //to integrate sight just change the function called when tick is called in map.
@@ -1170,13 +1187,25 @@ impl Predator {
         energy_to_reproduce: u32,
         cur_tick: u64,
         energy: u32,
+        mates: Vec<Predator>,
         preds: Vec<Predator>,
+        rocks: Vec<Rock>,
+        grazers: Vec<Grazer>,
         max_offspring: u32,
         offspring_energy: u32,
         gestation: u64,
         partner: Option<&Predator>,
-    ) -> Vec<Predator> {
+        max_speed_hod: f32,
+        max_speed_hed: f32,
+        max_speed_hor: f32,
+        predator_maintain_speed: f32,
+        width: u32,
+        height: u32
+    ) -> (Vec<Predator>, Vec<Predator>, Vec<Grazer>) {
         let mut ret = vec![];
+        let mut max_speed = 0.0;
+        let mut ded_grazs = Vec::new();
+        let mut ded_preds = Vec::new();
         // if energy and not pregnant
         // has a mate
         // mate
@@ -1188,20 +1217,24 @@ impl Predator {
 
         // need to filter for avoid list
 
-        let pred = preds
-            .iter()
-            .filter(|p| p.willing_to_mate(energy_to_reproduce))
-            .filter(|p| p.get_entity().get_id() != self.get_entity().get_id())
-            //.inspect(|pred| log(pred.get_entity().get_id().to_string().as_str()))
-            .next();
-
-        if self.willing_to_mate(energy_to_reproduce) {
-            // if vaible candidate is found
-            if let Some(pred) = pred {
-                self.mate(&mut pred.clone(), cur_tick, gestation);
-                log("viable mate found");
+        // if can mate seek mate
+        // else if seek food (within check about genetcs and type of prey)
+        // with in this check if at prey then using genetcs calulate chance fo catch and kill and gain energy
+        // else wander
+        match self.speed {
+            Gene::HomoDominant => {
+                max_speed = max_speed_hod;
             }
-        } else if self.is_pregnant {
+            Gene::Hetero =>
+            {
+               max_speed = max_speed_hed;
+            }
+            Gene::HomoRecessive => {
+                max_speed = max_speed_hor;
+            }
+        }
+
+        if self.is_pregnant {
             if self.get_ticks_til_birth() < cur_tick {
                 if let Some(partner) = partner {
                     ret.append(&mut self.birth(
@@ -1215,10 +1248,92 @@ impl Predator {
                 }
             }
         }
+        
 
-        self.mover.tick(5.0, energy, self.mover.entity);
+        else if self.willing_to_mate(energy_to_reproduce) {
+            // if vaible candidate is found
+            let pred = mates
+            .iter()
+            .filter(|p| p.willing_to_mate(energy_to_reproduce))
+            .filter(|p| p.get_entity().get_id() != self.get_entity().get_id())
+            //.inspect(|pred| log(pred.get_entity().get_id().to_string().as_str()))
+            .next();
+
+            if let Some(pred) = pred {
+                self.mate(&mut pred.clone(), cur_tick, gestation);
+                log("viable mate found");
+            }
+        } 
+        
+        if !preds.is_empty(){
+            // if preds not empty 
+            //check if at a valid prey before seeking
+            //AA seek closest prey source wether pred or graz
+            //Aa seek pred only IF graz.is_empty()
+            //aa runaway from pred unless mating
+            // push dead preds to ded_preds
+            ded_preds.push(preds[0]);
+
+            
+        }
+        else if !grazers.is_empty(){
+            //if preds empty seek grazers no matter gene
+            let mut min_dist = 0.0 as f32;
+            let mut closest_graz = grazers[0];
+            for graz in grazers.iter(){
+                let distance = ((graz.mover.entity.x - self.mover.entity.x).powi(2) + (graz.mover.entity.y - self.mover.entity.y).powi(2)).sqrt();
+                if distance < min_dist {
+                    min_dist = distance;
+                    closest_graz = graz.clone();
+                    }
+                }
+
+            if min_dist <= 5.0 {
+                //hunt math
+                let hunt_chance :u8 = rand::thread_rng().gen_range(0..100);
+                match self.strength {
+                    Gene::HomoDominant => {
+                        if hunt_chance <= 95 as u8{
+                            ded_grazs.push(closest_graz);
+                            self.mover.energy += (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                        }                                           
+                    }
+                    Gene::Hetero => {
+                        if hunt_chance <= 75 as u8{
+                            //kill grazer gain energy
+                            ded_grazs.push(closest_graz);
+                            self.mover.energy += (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                        }
+                    }
+                    Gene::HomoRecessive => {
+                        if hunt_chance <= 50 as u8{
+                            //kill grazer gain energy
+                            ded_grazs.push(closest_graz);
+                            self.mover.energy += (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                        }
+                    }
+                }
+            }
+            else{
+                //seek closest prey
+                self.mover.state = 1;
+                self.mover.tick(max_speed, energy, closest_graz.mover.entity);
+            }
+
+
+        }
+        else {
+            //not mating and no possible prey around
+            self.mover.state = 2;
+            
+            self.mover.tick(max_speed, energy, self.mover.entity);
+            }
+            
+        
+
+        
         ret.push(self.clone());
-        ret
+        return (ret, ded_preds, ded_grazs);
     }
     fn willing_to_mate(&self, rep_energy: u32) -> bool {
         (self.mover.energy >= rep_energy) && !self.is_pregnant
