@@ -88,18 +88,24 @@ const map = Map.new();
 
 var fileInputElement = document.getElementById("10x");
 fileInputElement.addEventListener("click", e => {
-    setWait(100)
+    setWait(100);
 })
 
 var fileInputElement = document.getElementById("50x");
 fileInputElement.addEventListener("click", e => {
-    setWait(20)
+    setWait(20);
 })
 
 var fileInputElement = document.getElementById("100x");
 fileInputElement.addEventListener("click", e => {
-    setWait(10)
+    setWait(10);
 })
+
+var genReportButton = document.getElementById("generate report");
+genReportButton.addEventListener("click", e => {
+    map.generate_report();
+})
+
 var fileInputElement = document.getElementById("file-input");
 fileInputElement.addEventListener("change", e => fileInputElement.files[0].text().then((xmlText) => {
     var xmlText = xmlText.replace(/\s/g,"");
