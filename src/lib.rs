@@ -1272,7 +1272,7 @@ impl Predator {
             //Aa seek pred only IF graz.is_empty()
             //aa runaway from pred unless mating
             // push dead preds to ded_preds
-            ded_preds.push(preds[0]);
+
 
             
         }
