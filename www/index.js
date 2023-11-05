@@ -103,7 +103,16 @@ fileInputElement.addEventListener("click", e => {
 
 var genReportButton = document.getElementById("generate report");
 genReportButton.addEventListener("click", e => {
-    map.generate_report();
+    //get filename
+    var filename = map.generate_report_file_name();
+
+    //get data from sim
+    var data = map.generate_report();
+
+    //create file trying blob
+    var blob = new Blob([data], {type: "text/plain",});
+    saveAs(blob, filename);
+
 })
 
 var fileInputElement = document.getElementById("file-input");
