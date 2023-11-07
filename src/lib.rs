@@ -5,6 +5,7 @@ extern "C" {
     fn log(s: &str);
 }
 
+
 use rand::Rng;
 use uuid::Uuid;
 mod utils;
@@ -64,7 +65,7 @@ impl Map {
         let mut new_plants = Vec::new();
         let mut plants_to_remove = Vec::new();
         let max_size = self.get_max_size() as f32; // Calculate it once
-        let maintain_speed_ticks = (self.grazer_maintain_speed * 60.0) as u64;
+        let maintain_speed_ticks = (self.grazer_maintain_speed * 60.0) as i32;
 
         for (index, plant) in self.plants.iter().enumerate() {
             let mut seeds = plant.tick(
@@ -78,36 +79,24 @@ impl Map {
                 self.get_current_tick(),
             );
             new_plants.append(&mut seeds);
-
-            if plant.get_diameter() == 0.0 {
-                // Check if there are other plants too close
-                let is_too_close = self.plants.iter().enumerate().any(|(i, plant2)| {
-                    i != index && // Exclude the current plant
-
-                    ((plant.entity.x - plant2.entity.x).powi(2) + (plant.entity.y - plant2.entity.y).powi(2)).sqrt() < max_size
-                });
-
-                if is_too_close {
-                    // Mark the current plant for removal
-                    plants_to_remove.push(index);
-                }
-            }
         }
 
         for grazer in self.grazers.iter() {
-            new_grazers.append(&mut grazer.clone().tick(
-                self.get_grazer_energy_input(),
-                self.get_grazer_energy_output(),
-                self.get_grazer_energy_to_reproduce(),
-                self.get_grazer_max_speed(),
-                maintain_speed_ticks,
-                self.get_plants_within_vicinity(
-                    grazer.mover.entity.x,
-                    grazer.mover.entity.y,
-                    150.0,
-                ),
-                self.get_current_tick(),
-            ));
+            //new_grazers.append
+            let mut weird = grazer.clone().tick(self.get_grazer_energy_input(),
+            self.get_grazer_energy_output(),
+            self.get_grazer_energy_to_reproduce(),
+            self.get_grazer_max_speed(),
+            maintain_speed_ticks,
+            self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 5.0),
+            self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 150.0),
+            self.get_predators_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 25.0),
+            self.get_rocks_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 50.0),
+            self.get_current_tick()
+            );
+
+            new_grazers.append(&mut weird.0);
+            plants_to_remove.append(&mut weird.1);
         }
         let mut preds = vec![];
 
@@ -128,14 +117,16 @@ impl Map {
             ));
         }
         self.predators = preds;
+        self.grazers = new_grazers;
 
         self.current_tick += 1;
         self.plants = new_plants;
-        // Remove plants marked for removal
-        // plants_to_remove.sort_by(|a, b| b.cmp(a)); // Sort in reverse order
-        // for index in plants_to_remove {
-        //     self.plants.remove(index);
-        // }
+
+        // remove dead
+        self.plants.retain(|obj| {
+            !plants_to_remove.iter().any(|r| r.entity.id == obj.entity.id) // Change the condition based on your specific criteria
+        });
+
     }
 
     // returns true if the sight line is not blocked
@@ -204,10 +195,30 @@ impl Map {
             .collect::<Vec<Plant>>()
     }
 
+    fn get_visible_plants_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Plant> {
+        self.plants
+            .iter()
+            .filter(|plant| get_length(plant.entity.x - x, plant.entity.y - y) < max_dist)
+            .filter(|seer| self.check_sight_line(seer.get_entity().get_x(), seer.get_entity().get_y(), x, y))
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|plant: &Plant| plant.clone())
+            .collect::<Vec<Plant>>()
+    }
+
     fn get_rocks_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Rock> {
         self.rocks
             .iter()
             .filter(|rock| get_length(rock.entity.x - x, rock.entity.y - y) < max_dist)
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|rock: &Rock| rock.clone())
+            .collect::<Vec<Rock>>()
+    }
+
+    fn get_visible_rocks_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Rock> {
+        self.rocks
+            .iter()
+            .filter(|rock| get_length(rock.entity.x - x, rock.entity.y - y) < max_dist)
+            .filter(|seer| self.check_sight_line(seer.get_entity().get_x(), seer.get_entity().get_y(), x, y))
             //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
             .map(|rock: &Rock| rock.clone())
             .collect::<Vec<Rock>>()
@@ -222,10 +233,30 @@ impl Map {
             .collect::<Vec<Grazer>>()
     }
 
+    fn get_visible_grazers_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Grazer> {
+        self.grazers
+            .iter()
+            .filter(|graz| get_length(graz.mover.entity.x - x, graz.mover.entity.y - y) < max_dist)
+            .filter(|seer| self.check_sight_line(seer.get_entity().get_x(), seer.get_entity().get_y(), x, y))
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|graz: &Grazer| graz.clone())
+            .collect::<Vec<Grazer>>()
+    }
+
     fn get_predators_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Predator> {
         self.predators
             .iter()
             .filter(|pred| get_length(pred.mover.entity.x - x, pred.mover.entity.y - y) < max_dist)
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|pred: &Predator| pred.clone())
+            .collect::<Vec<Predator>>()
+    }
+
+    fn get_visible_predators_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Predator> {
+        self.predators
+            .iter()
+            .filter(|pred| get_length(pred.mover.entity.x - x, pred.mover.entity.y - y) < max_dist)
+            .filter(|seer| self.check_sight_line(seer.get_entity().get_x(), seer.get_entity().get_y(), x, y))
             //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
             .map(|pred: &Predator| pred.clone())
             .collect::<Vec<Predator>>()
@@ -482,7 +513,7 @@ impl Default for Entity {
 #[wasm_bindgen]
 pub struct Mover {
     pub entity: Entity,
-    state: i32, // needs to be enum of state
+    state: i32, //0 = stay 1 = Arrive 2 = wander
     velocity_x: f32,
     velocity_y: f32,
     orientation: f32,
@@ -508,17 +539,30 @@ impl Mover {
             ..Default::default()
         }
     }
-    fn tick(&mut self, max_speed: f32, energy: u32) {
-        if self.energy > 5 {
-            self.entity.x += self.velocity_x;
-            self.entity.y += self.velocity_y;
+    fn tick(&mut self, max_speed: f32, energy: u32, target: Entity){
+            // move here
+            if self.state == 0{
+                //stay
+                //return self back
+                // dont need to set anything to zero as will return a new copy of mover up to
+            }
+            else if self.state == 1 {
+                Mover::arrive(self, target, 1 as f32);
+            }
+            else if self.state == 2 {
+                Mover::wander(self, 1 as f32);
+            }
+            else if self.state == 3 {
+                Mover::flee(self, target, 1 as f32);
+            }
 
             self.du += f32::sqrt(self.entity.x.powi(2) + self.entity.y.powi(2));
             if self.du > 5.0 {
                 self.du -= 5.0;
                 self.energy -= energy;
             }
-        }
+        // a grazer can only move 10 du when energy is below 25
+        //  add a death here for 0 energy
     }
     fn get_state(&self) -> i32 {
         //change to enum in future
@@ -572,10 +616,10 @@ impl Mover {
     }
 
     fn normalize(mut x: f32, mut z: f32) -> (f32, f32) {
-        let distance = get_length(x, z);
+        let distance = get_length(x, z); //282 -200
         x = x / distance;
         z = z / distance;
-        return (x, z);
+        return (x, z); // -0.709
     }
 
     fn seek(mut char: &mut Mover, target: Entity, delta_time: f32) -> &Mover {
@@ -607,40 +651,48 @@ impl Mover {
     }
 
     fn arrive(mut char: &mut Mover, target: Entity, delta_time: f32) -> &Mover {
+        let dx = target.x - char.entity.x;
+        let dy = target.y - char.entity.y;
+        char.orientation = dy.atan2(dx);
+
         let mut result_x = 0.0;
         let mut result_y = 0.0;
         let mut goalSpeed = 0.0;
         let mut direction_x = 0.0;
         let mut direction_y = 0.0;
 
-        direction_x = target.x - char.entity.x;
-        direction_y = target.y - char.entity.y;
+        direction_x = target.x - char.entity.x; // -200
+        direction_y = target.y - char.entity.y; // -200
 
-        let distance = get_length(direction_x, direction_y);
-
+        let distance = get_length(direction_x, direction_y); //282
         if distance < 1.0
         //This may need to be tested and fixed later.
         {
             return char;
         }
 
-        if distance > 1.5
-        //This will also need to be tested.
+        else if distance > char.max_speed + 5.0
+        //This will also need to be tested. // max sped
         {
-            goalSpeed = char.max_speed;
-        } else {
-            goalSpeed = char.max_speed * distance / 1.5 //The 1.5 is the slow radius, this needs to be tested.
+            log("arrive at max");
+            goalSpeed = char.max_speed; // 20
+
+        } else { //slow
+            log("arrive at slow");
+            goalSpeed = char.max_speed * distance / (char.max_speed + 5.0) //The 1.5 is the slow radius, this needs to be tested.
         }
 
-        let mut goal_velocity_x = direction_x;
-        let mut goal_velocity_y = direction_y;
+        let mut goal_velocity_x = direction_x; // -200
+        let mut goal_velocity_y = direction_y; // -200
 
-        (goal_velocity_x, goal_velocity_y) = Mover::normalize(goal_velocity_x, goal_velocity_y);
-        goal_velocity_x = goal_velocity_x * goalSpeed;
-        goal_velocity_y = goal_velocity_y * goalSpeed;
+        (goal_velocity_x, goal_velocity_y) = Mover::normalize(goal_velocity_x, goal_velocity_y); // -0.709
+        goal_velocity_x = goal_velocity_x * goalSpeed; // -14
+        goal_velocity_y = goal_velocity_y * goalSpeed; // -14
 
-        result_x = goal_velocity_x - char.entity.x;
-        result_y = goal_velocity_y - char.entity.y;
+        log(format!("velocity ({},{})", goal_velocity_x, goal_velocity_y).as_str());
+
+        result_x = goal_velocity_x;
+        result_y = goal_velocity_y;
 
         /* These 2 lines might not be necessary, maybe need testing? maybe not?
         result_x = result_x / char.ttt;
@@ -651,31 +703,35 @@ impl Mover {
     }
 
     fn wander(mut char: &mut Mover, delta_time: f32) -> &Mover {
-        let maxRotation = 15.0;
+        let max_rotation = 15.0;
         let mut result_x = 0.0;
         let mut result_y = 0.0;
         let mut result_orien = 0.0;
         let num = rand::thread_rng().gen_range(-1.0..1.0);
 
+       // log("max speed is ", char.max_speed);
+
         result_x = char.max_speed * char.orientation.sin() * 0.75;
         result_y = char.max_speed * char.orientation.cos() * 0.75;
-        result_orien = num * maxRotation;
+        result_orien = num * max_rotation;
 
         return Mover::kinematicupdate(result_x, result_y, result_orien, char, delta_time);
     }
 
     fn update(result_x: f32, result_y: f32, char: &mut Mover, delta_time: f32) -> &Mover {
-        char.entity.x += char.velocity_x * delta_time;
-        char.entity.y += char.velocity_y * delta_time;
-
-        char.velocity_x += result_x * delta_time;
-        char.velocity_y += result_y * delta_time;
+        char.velocity_x += result_x * delta_time; //-264
+        char.velocity_y += result_y * delta_time; // -264
 
         if get_length(char.velocity_x, char.velocity_y) > char.max_speed {
             let (velocity_x, velocity_y) = Mover::normalize(char.velocity_x, char.velocity_y);
-            char.velocity_x = velocity_x * char.max_speed;
-            char.velocity_y = velocity_y * char.max_speed;
+            char.velocity_x = velocity_x * char.max_speed; // -14
+            char.velocity_y = velocity_y * char.max_speed; // -14
         }
+
+        char.entity.x += char.velocity_x * delta_time;
+        char.entity.y += char.velocity_y * delta_time;
+
+
 
         return char;
     }
@@ -718,7 +774,7 @@ impl Default for Mover {
             target_y: 0.0,
             energy: 0,
             du: 0.0,
-            max_speed: 0.0,
+            max_speed: 10.0,
         }
     }
 }
@@ -773,6 +829,8 @@ impl Rock {
 pub struct Grazer {
     mover: Mover,
     ticks_in_loc: i32, //minutes in cur location without moving max is 10 once at 10 need to move
+    ticks_at_speed: i32,
+    is_chased: bool,
 }
 
 #[wasm_bindgen]
@@ -791,19 +849,143 @@ impl Grazer {
             ..Default::default()
         }
     }
-    fn tick(
-        self,
+    fn tick( &mut self,
         energy_in: u32,
         energy_out: u32,
         energy_reproduce: u32,
         max_speed: f32,
-        maintain_speed: u64,
-        plants: Vec<Plant>,
+        maintain_speed: i32,
+        at_plants: Vec<Plant>, //in 5du
+        plants: Vec<Plant>, //150 du
+        predators: Vec<Predator>, //25 du
+        rocks: Vec<Rock>, // 50 du
         cur_tick: u64,
-    ) -> Vec<Grazer> {
-        let new_graz = Vec::new();
+    ) -> (Vec<Grazer>, Vec<Plant>) {
+        //plants and predator is a vector of creatures with distance sight is not yet implemented 
+        //to integrate sight just change the function called when tick is called in map.
+        let mut new_graz = Vec::new();
+        let mut ded_plants = Vec::new();
+        if self.mover.energy > 25 && self.ticks_at_speed < maintain_speed{
+            self.mover.max_speed = max_speed;
+        }
+        else if self.mover.energy <= 25 {
+            self.mover.max_speed = 10.0;
+        }
+        else if self.ticks_at_speed > maintain_speed{
+            self.mover.max_speed = max_speed * 0.75;
+        }
+        if ! self.is_chased{
+            self.ticks_at_speed = 0;
+        }
 
-        return new_graz;
+        log(format!("current tick is {}", cur_tick).as_str());
+        //first check for predators to run from
+        if !predators.is_empty(){
+            self.is_chased = true;
+            //seek rock away from closest pred
+            //set movers target
+            self.mover.state = 1; //set state to arrive
+            //log(plants.len());
+            if !rocks.is_empty(){
+            let mut min_dist = 0.0 as f32;
+            let mut closest_rock = &rocks[0];
+            for rock in rocks.iter(){
+                let distance = ((rock.entity.x - self.mover.entity.x).powi(2) + (rock.entity.y - self.mover.entity.y).powi(2)).sqrt();
+                if distance < min_dist {
+                    min_dist = distance;
+                    closest_rock = rock;
+                    }
+                }
+            if self.ticks_at_speed < maintain_speed {
+                self.mover.tick(max_speed, energy_out, closest_rock.entity);
+                self.ticks_at_speed += 1;
+            }
+            else if min_dist == 0.0 {
+                self.mover.tick(max_speed * 0.75, energy_out, closest_rock.entity);
+            }
+
+            }
+            else {
+                let mut min_dist = 0.0 as f32;
+                let mut closest_pred = &predators[0];
+                for pred in predators.iter(){
+                    let distance = ((pred.mover.entity.x - self.mover.entity.x).powi(2) + (pred.mover.entity.y - self.mover.entity.y).powi(2)).sqrt();
+                    if distance < min_dist {
+                        min_dist = distance;
+                        closest_pred = pred;
+                        }
+                    }
+                    self.mover.state = 3;
+                    self.mover.tick(max_speed * 0.75, energy_out, closest_pred.mover.entity);
+             }
+        }
+        else if self.mover.energy >= energy_reproduce {
+            new_graz.push(self.reproduce());
+        }
+        // here means no predators
+        // check if at food for plant in 5 du
+        // been at plant
+        else if !at_plants.is_empty() && self.ticks_in_loc != 0{
+            self.is_chased = false;
+            //now check if tick at loc is at max
+            self.mover.state = 0;
+            log(format!("tick in loc {}", self.ticks_in_loc).as_str());
+            log(format!("energy {}", self.mover.energy).as_str());
+            if self.ticks_in_loc == 600{
+                for plant in at_plants.iter(){
+                    ded_plants.push(plant.clone());
+                }
+
+                self.ticks_in_loc = 0;
+                //seek next plant
+            }
+            else {
+                //then if not max stay
+                //gain energy on 60 increments
+                self.ticks_in_loc += 1;
+                if self.ticks_in_loc % 60 == 0 {
+                    self.mover.energy += energy_in;
+                }
+            }
+        }
+        // first tick at plant
+        else if !at_plants.is_empty() && self.ticks_in_loc == 0{
+            self.is_chased = false;
+            // just arrived at plant
+            self.mover.state = 0;
+            self.ticks_in_loc += 1;
+            self.mover.tick(max_speed, energy_out, self.mover.entity);
+        }
+
+        else if at_plants.is_empty() && !plants.is_empty(){
+            self.is_chased = false;
+            //find closest plant and set arrive target
+            self.mover.state = 1;
+            let mut min_dist = 0.0 as f32;
+            let mut closest_plant = &plants[0];
+            for plant in plants.iter(){
+                let distance = ((plant.entity.x - self.mover.entity.x).powi(2) + (plant.entity.y - self.mover.entity.y).powi(2)).sqrt();
+                if distance < min_dist {
+                    min_dist = distance;
+                    closest_plant = plant;
+                    }
+                }
+            self.mover.tick(max_speed, energy_out, closest_plant.entity);
+        }
+        else{
+            self.is_chased = false;
+            //start wandering
+            self.mover.state = 2;
+            self.mover.tick(max_speed, energy_out, self.mover.entity);
+        }
+
+        log(format!("energy {}", self.mover.energy).as_str());
+        // only add grazers worthy of life
+        if self.mover.energy > 0 as u32{
+            new_graz.push(self.clone());
+        }
+
+        return (new_graz, ded_plants);
         // self.mover.tick(5.0, energy);
     }
 
@@ -819,10 +1001,12 @@ impl Grazer {
     fn set_ticks_in_loc(&mut self, new_min_in_loc: i32) {
         self.ticks_in_loc = new_min_in_loc;
     }
-    fn reproduce(&mut self, map: &mut Map) {
+    fn reproduce(&mut self) -> Grazer {
         let new_energy = self.mover.energy / 2;
-        map.add_grazer(self.mover.entity.x + 0.5, self.mover.entity.y, new_energy);
+        let mut new_graz1 = Grazer::new(self.mover.entity.x + 5.0, self.mover.entity.y, new_energy);
+        new_graz1.mover.entity.generation = self.mover.entity.generation + 1;
         self.mover.energy = new_energy;
+        return new_graz1;
         // keep an eye on original grazer to make sure energy is set to new energy after new grazer exixsts
     }
 }
@@ -1072,7 +1256,7 @@ impl Predator {
             }
         }
 
-        self.mover.tick(5.0, energy);
+        self.mover.tick(5.0, energy, self.mover.entity);
         ret.push(self.clone());
         ret
     }
