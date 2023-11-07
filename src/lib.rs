@@ -89,8 +89,8 @@ impl Map {
             self.get_grazer_max_speed(),
             maintain_speed_ticks,
             self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 5.0),
-            self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 150.0),
-            self.get_predators_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 25.0),
+            self.get_visible_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 150.0),
+            self.get_visible_predators_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 25.0),
             self.get_rocks_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 50.0),
             self.get_current_tick()
             );
