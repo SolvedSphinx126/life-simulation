@@ -10,6 +10,7 @@ use uuid::Uuid;
 use std::fs::OpenOptions;
 use std::io::Write;
 use chrono::prelude::*;
+use chrono::Local;
 use std::string::ToString;
 use std::io::prelude::*;
 use std::iter::Once;
@@ -404,14 +405,15 @@ impl Map {
     }
     pub fn generate_report_file_name(&self) -> String{
         //generate the name of the report file with the time
-        let dt = Utc::now();
+        let dt = Local::now();
 	    let mut file_name: String = "SimulationReport-".to_owned();
-	    file_name = file_name + (&dt.hour().to_string());
-	    file_name = file_name + ":";
+        
+	    file_name = file_name + &dt.hour().to_string();
+	    file_name.push_str("-");
 	    file_name = file_name + (&dt.minute().to_string());
-	    file_name = file_name + (":");
+	    file_name.push_str("-");
 	    file_name = file_name + (&dt.second().to_string());
-	    file_name = file_name + (".txt");
+	    file_name = file_name + ".txt";
         return String::from(file_name);
     }
     pub fn generate_report(&self) -> String {
@@ -422,7 +424,7 @@ impl Map {
     	data = data + format!("SIMULATION DATA\n\n").as_str();
     	
     	//Print plant data
-    	data = data + format!("Plants: {} \n", self.plants.len()).as_str();
+    	data = data + format!("Total Plants: {} \n\n", self.plants.len()).as_str();
     	
     	for plant in self.plants.iter(){
             data = data + format!("Plant\n").as_str();
@@ -434,10 +436,10 @@ impl Map {
     		data = data + format!("Diameter: {}\n", plant.diameter).as_str();
     		data = data + format!("\n").as_str();
     	}
-    	data = data +  (format!("\n\n").as_str());
+    	data = data +  (format!("\n").as_str());
     	
     	//Print grazer data
-    	data = data + (format!("Grazers: {}\n", self.grazers.len()).as_str());
+    	data = data + (format!("Total Grazers: {}\n\n", self.grazers.len()).as_str());
     	
     	for grazer in self.grazers.iter(){
             data = data + format!("Grazer\n").as_str();
@@ -455,10 +457,10 @@ impl Map {
     		data = data + format!("Energy: {}\n", grazer.mover.energy).as_str();
     		data = data + format!("\n").as_str();
     	}
-    	data = data + format!("\n\n").as_str();
+    	data = data + format!("\n").as_str();
     	
         //Print Predators
-    	data = data + format!("Predators: {}\n", self.predators.len()).as_str();
+    	data = data + format!("Total Predators: {}\n\n", self.predators.len()).as_str();
     	
     	for predator in self.predators.iter(){
             data = data + (format!("Predator\n").as_str());
@@ -474,12 +476,12 @@ impl Map {
     		data = data + (format!("Target Y Position: {}\n", predator.mover.target_y).as_str());
     		data = data + (format!("Du: {}\n", predator.mover.du).as_str());
             data = data + (format!("Energy: {}\n", predator.mover.energy).as_str());
-    		data = data + (format!("Genes: {:?}{:?}{:?}\n", predator.speed, predator.strength, predator.agression).as_str());
+    		data = data + (format!("Genes: {}\n", predator.get_gen_seq()).as_str());
     		data = data + (format!("Is Pregnant: {}\n", predator.is_pregnant).as_str());
-    		data = data + (format!("Time as Family: {}\n", predator.time_family).as_str());
+    		data = data + (format!("Time as Friends: {}\n", predator.time_family).as_str());
     		//print kids
     		for child in predator.family.iter(){
-    			data = data + (format!("Child's ID: {}\n", child).as_str());
+    			data = data + (format!("Friendly ID: {}\n", child).as_str());
     		}
     		data = data + (format!("\n").as_str());
     	
@@ -1162,23 +1164,23 @@ impl Predator {
     }
     pub fn get_gen_seq(&self) -> String {
         let ag = match self.agression {
-            Gene::Hetero => "Hetero agression, ",
-            Gene::HomoDominant => "Homo Dom agression, ",
-            Gene::HomoRecessive => "Homo Rec agression, ",
+            Gene::Hetero => "Aa, ",
+            Gene::HomoDominant => "AA, ",
+            Gene::HomoRecessive => "aa, ",
         }
         .to_owned();
 
         let strength = match self.strength {
-            Gene::Hetero => "Hetero strength, ",
-            Gene::HomoDominant => "Homo Dom strength, ",
-            Gene::HomoRecessive => "Homo Rec strength, ",
+            Gene::Hetero => "Ss, ",
+            Gene::HomoDominant => "SS, ",
+            Gene::HomoRecessive => "ss, ",
         }
         .to_owned();
 
         let speed = match self.speed {
-            Gene::Hetero => "Hetero speed",
-            Gene::HomoDominant => "Homo Dom speed",
-            Gene::HomoRecessive => "Homo Rec speed",
+            Gene::Hetero => "Ff",
+            Gene::HomoDominant => "FF",
+            Gene::HomoRecessive => "ff",
         }
         .to_owned();
         format!("{}{}{}", ag, strength, speed)

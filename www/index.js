@@ -107,12 +107,31 @@ genReportButton.addEventListener("click", e => {
     var filename = map.generate_report_file_name();
 
     //get data from sim
-    var data = map.generate_report();
+    var mapData = map.generate_report();
 
     //create file trying blob
-    var blob = new Blob([data], {type: "text/plain",});
-    saveAs(blob, filename);
+    var blob = new Blob([mapData], {type: "text/plain",});
 
+    const blobURL = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = blobURL;
+    link.download = filename;
+
+    document.body.appendChild(link);
+
+    link.dispatchEvent(
+        new MouseEvent('click',{
+            bubbles: true,
+            cancelable: true,
+            view: window
+        })
+    );
+
+   document.body.removeChild(link);
+
+    
 })
 
 var fileInputElement = document.getElementById("file-input");
