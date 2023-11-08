@@ -66,8 +66,11 @@ impl Map {
         let mut plants_to_remove = Vec::new();
         let max_size = self.get_max_size() as f32; // Calculate it once
         let maintain_speed_ticks = (self.grazer_maintain_speed * 60.0) as i32;
+        let mut preds = vec![];
+        let mut ded_preds = vec![];
+        let mut ded_grazs = vec![];
 
-        for (index, plant) in self.plants.iter().enumerate() {
+        for  plant in self.plants.iter() {
             let mut seeds = plant.tick(
                 self.get_width(),
                 self.get_height(),
@@ -101,7 +104,7 @@ impl Map {
              new_grazers.append(&mut weird.0); 
             plants_to_remove.append(&mut weird.1);
         }
-        let mut preds = vec![];
+        
 
         for pred in self.predators.iter() {
             let mut weird = pred.clone().tick(
@@ -131,16 +134,30 @@ impl Map {
                 self.width,
                 self.height
             );
+            preds.append(&mut weird.0);
+            ded_preds.append(&mut weird.1);
+            ded_grazs.append(&mut weird.2);
+
         }
+
+        //set all alive creatures
         self.predators = preds;
         self.grazers = new_grazers;
-
-        self.current_tick += 1;
         self.plants = new_plants;
+
+        //increment tick counter
+        self.current_tick += 1;
+        
         
         // remove dead
         self.plants.retain(|obj| {
             !plants_to_remove.iter().any(|r| r.entity.id == obj.entity.id) // Change the condition based on your specific criteria
+        });
+        self.grazers.retain(|obj| {
+            !ded_grazs.iter().any(|r| r.get_entity().id == obj.get_entity().id) // Change the condition based on your specific criteria
+        });
+        self.predators.retain(|obj| {
+            !ded_preds.iter().any(|r| r.get_entity().id == obj.get_entity().id) // Change the condition based on your specific criteria
         });
 
     }
@@ -851,7 +868,7 @@ impl Grazer {
             self.mover.state = 1; //set state to arrive
             //log(plants.len());
             if !rocks.is_empty(){
-            let mut min_dist = 0.0 as f32;
+            let mut min_dist = 150 as f32;
             let mut closest_rock = &rocks[0];
             for rock in rocks.iter(){
                 let distance = ((rock.entity.x - self.mover.entity.x).powi(2) + (rock.entity.y - self.mover.entity.y).powi(2)).sqrt();
@@ -870,7 +887,7 @@ impl Grazer {
             
             }
             else {
-                let mut min_dist = 0.0 as f32;
+                let mut min_dist = 150 as f32;
                 let mut closest_pred = &predators[0];
                 for pred in predators.iter(){
                     let distance = ((pred.mover.entity.x - self.mover.entity.x).powi(2) + (pred.mover.entity.y - self.mover.entity.y).powi(2)).sqrt();
@@ -930,7 +947,7 @@ impl Grazer {
             self.is_chased = false;
             //find closest plant and set arrive target
             self.mover.state = 1;
-            let mut min_dist = 0.0 as f32;
+            let mut min_dist = 150 as f32;
             let mut closest_plant = &plants[0];
             for plant in plants.iter(){
                 let distance = ((plant.entity.x - self.mover.entity.x).powi(2) + (plant.entity.y - self.mover.entity.y).powi(2)).sqrt();
@@ -1206,6 +1223,9 @@ impl Predator {
         let mut max_speed = 0.0;
         let mut ded_grazs = Vec::new();
         let mut ded_preds = Vec::new();
+        let mut predators = preds.clone();
+        predators.retain(|obj|  self.get_entity().get_id() != obj.get_entity().get_id());
+        //(|pred| pred.get_entity().get_id() != self.get_entity().get_id());
         // if energy and not pregnant
         // has a mate
         // mate
@@ -1265,29 +1285,391 @@ impl Predator {
             }
         } 
         
-        if !preds.is_empty(){
+        if !predators.is_empty(){
+            log("predators not empty");
             // if preds not empty 
             //check if at a valid prey before seeking
             //AA seek closest prey source wether pred or graz
             //Aa seek pred only IF graz.is_empty()
             //aa runaway from pred unless mating
             // push dead preds to ded_preds
+            match self.agression {
 
+                Gene::HomoDominant => {
+
+                    let mut p_min_dist = 150 as f32;
+                    let mut closest_pred: Predator = Predator::default();
+                    for pred in predators.iter().filter(|pred| !self.family.contains(&pred.get_entity().get_id())){
+                        let distance = ((pred.mover.entity.x - self.mover.entity.x).powi(2) + (pred.mover.entity.y - self.mover.entity.y).powi(2)).sqrt();
+                        if distance < p_min_dist {
+                            p_min_dist = distance;
+                            closest_pred = pred.clone();
+                            }
+                    }
+                    if !grazers.is_empty() {
+                        let mut g_min_dist = 150 as f32;
+                        let mut closest_graz = Grazer::default();
+                        for graz in grazers.iter(){
+                            let distance = ((graz.mover.entity.x - self.mover.entity.x).powi(2) + (graz.mover.entity.y - self.mover.entity.y).powi(2)).sqrt();
+                            if distance < g_min_dist {
+                                g_min_dist = distance;
+                                closest_graz = graz.clone();
+                                }
+                        }
+                        //if graz closer go for graz
+                        if g_min_dist < p_min_dist {
+                            if g_min_dist <= 5.0 {
+                                //hunt math
+                                let hunt_chance :u8 = rand::thread_rng().gen_range(0..100);
+                                match self.strength {
+                                    Gene::HomoDominant => {
+                                        if hunt_chance <= 95 as u8{
+                                            ded_grazs.push(closest_graz);
+                                            self.mover.energy += (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                                        }                                           
+                                    }
+                                    Gene::Hetero => {
+                                        if hunt_chance <= 75 as u8{
+                                            //kill grazer gain energy
+                                            ded_grazs.push(closest_graz);
+                                            self.mover.energy += (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                                        }
+                                    }
+                                    Gene::HomoRecessive => {
+                                        if hunt_chance <= 50 as u8{
+                                            //kill grazer gain energy
+                                            ded_grazs.push(closest_graz);
+                                            self.mover.energy += (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                                        }
+                                    }
+                                }
+                            }
+                            else {
+                                self.mover.state = 1;
+                                self.mover.tick(max_speed, energy, closest_graz.mover.entity);
+                            }
+
+                        }
+                    
+                    }
+                    else {
+                        // hunt the closest pred
+                        if p_min_dist <= 5.0 {
+                            //hunt math //need to update for pred v pred 
+                            let hunt_chance :u8 = rand::thread_rng().gen_range(0..100);
+                            match self.strength {
+                                Gene::HomoDominant => {
+                                    match closest_pred.strength {
+                                        Gene::HomoDominant => {
+                                            if hunt_chance <= 50 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                            else {
+                                                self.add_family(closest_pred.get_entity().get_id());
+                                                closest_pred.add_family(self.get_entity().get_id());
+                                            }
+                                        }
+                                        Gene::Hetero => {
+                                            if hunt_chance <= 75 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                            else {
+                                                self.add_family(closest_pred.get_entity().get_id());
+                                                closest_pred.add_family(self.get_entity().get_id());
+                                            }
+                                        }
+                                        Gene::HomoRecessive => {
+                                            if hunt_chance <= 95 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                            else {
+                                                self.add_family(closest_pred.get_entity().get_id());
+                                                closest_pred.add_family(self.get_entity().get_id());
+                                            }
+                                        }
+                                    }
+                                                                               
+                                }
+                                Gene::Hetero => {
+                                    match closest_pred.strength {
+                                        Gene::HomoDominant => {
+                                            if hunt_chance <= 25 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                            else {
+                                                self.add_family(closest_pred.get_entity().get_id());
+                                                closest_pred.add_family(self.get_entity().get_id());
+                                            }
+                                        }
+                                        Gene::Hetero => {
+                                            if hunt_chance <= 50 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                            else {
+                                                self.add_family(closest_pred.get_entity().get_id());
+                                                closest_pred.add_family(self.get_entity().get_id());
+                                            }
+                                        }
+                                        Gene::HomoRecessive => {
+                                            if hunt_chance <= 75 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                            else {
+                                                self.add_family(closest_pred.get_entity().get_id());
+                                                closest_pred.add_family(self.get_entity().get_id());
+                                            }
+                                        }
+                                    }
+                                    
+                                }
+                                Gene::HomoRecessive => {
+                                    match closest_pred.strength {
+                                        Gene::HomoDominant => {
+                                            if hunt_chance <= 5 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                        }
+                                        Gene::Hetero => {
+                                            if hunt_chance <= 25 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                        }
+                                        Gene::HomoRecessive => {
+                                            if hunt_chance <= 50 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            //seek closest prey
+                            self.mover.state = 1;
+                            self.mover.tick(max_speed, energy, closest_pred.mover.entity);
+                        }
+                    }
+                    
+
+                }
+                Gene::Hetero => {
+                    let mut p_min_dist = 150 as f32;
+                    let mut closest_pred: Predator = Predator::default();
+                    for pred in predators.iter().filter(|pred| !self.family.contains(&pred.get_entity().get_id()) ){
+                        let distance = ((pred.mover.entity.x - self.mover.entity.x).powi(2) + (pred.mover.entity.y - self.mover.entity.y).powi(2)).sqrt();
+                        if distance < p_min_dist {
+                            p_min_dist = distance;
+                            closest_pred = pred.clone();
+                            }
+                    }
+                    if !grazers.is_empty() {
+                        log("grazers not empty");
+                        let mut g_min_dist = 150 as f32;
+                        let mut closest_graz = Grazer::default();
+                        for graz in grazers.iter(){
+                            let distance = ((graz.mover.entity.x - self.mover.entity.x).powi(2) + (graz.mover.entity.y - self.mover.entity.y).powi(2)).sqrt();
+                            if distance < g_min_dist {
+                                g_min_dist = distance;
+                                closest_graz = graz.clone();
+                            }
+                        }
+                        if g_min_dist <= 5.0 {
+                            //hunt math
+                            let hunt_chance :u8 = rand::thread_rng().gen_range(0..100);
+                            match self.strength {
+                                Gene::HomoDominant => {
+                                    if hunt_chance <= 95 as u8{
+                                        ded_grazs.push(closest_graz);
+                                        self.mover.energy += (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                                    }                                           
+                                }
+                                Gene::Hetero => {
+                                    if hunt_chance <= 75 as u8{
+                                        //kill grazer gain energy
+                                        ded_grazs.push(closest_graz);
+                                        self.mover.energy += (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                                    }
+                                }
+                                Gene::HomoRecessive => {
+                                    if hunt_chance <= 50 as u8{
+                                        //kill grazer gain energy
+                                        ded_grazs.push(closest_graz);
+                                        self.mover.energy += (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            self.mover.state = 1;
+                            self.mover.tick(max_speed, energy, closest_graz.mover.entity);
+                        }
+                    }
+                    else {
+                        // hunt the closest pred
+                        if p_min_dist <= 5.0 {
+                            //hunt math //need to update for pred v pred 
+                            let hunt_chance :u8 = rand::thread_rng().gen_range(0..100);
+                            match self.strength {
+                                Gene::HomoDominant => {
+                                    match closest_pred.strength {
+                                        Gene::HomoDominant => {
+                                            if hunt_chance <= 50 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                            else {
+                                                self.add_family(closest_pred.get_entity().get_id());
+                                                closest_pred.add_family(self.get_entity().get_id());
+                                            }
+                                        }
+                                        Gene::Hetero => {
+                                            if hunt_chance <= 75 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                            else {
+                                                self.add_family(closest_pred.get_entity().get_id());
+                                                closest_pred.add_family(self.get_entity().get_id());
+                                            }
+                                        }
+                                        Gene::HomoRecessive => {
+                                            if hunt_chance <= 95 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                            else {
+                                                self.add_family(closest_pred.get_entity().get_id());
+                                                closest_pred.add_family(self.get_entity().get_id());
+                                            }
+                                        }
+                                    }
+                                                                               
+                                }
+                                Gene::Hetero => {
+                                    match closest_pred.strength {
+                                        Gene::HomoDominant => {
+                                            if hunt_chance <= 25 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                            else {
+                                                self.add_family(closest_pred.get_entity().get_id());
+                                                closest_pred.add_family(self.get_entity().get_id());
+                                            }
+                                        }
+                                        Gene::Hetero => {
+                                            if hunt_chance <= 50 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                            else {
+                                                self.add_family(closest_pred.get_entity().get_id());
+                                                closest_pred.add_family(self.get_entity().get_id());
+                                            }
+                                        }
+                                        Gene::HomoRecessive => {
+                                            if hunt_chance <= 75 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                            else {
+                                                self.add_family(closest_pred.get_entity().get_id());
+                                                closest_pred.add_family(self.get_entity().get_id());
+                                            }
+                                        }
+                                    }
+                                    
+                                }
+                                Gene::HomoRecessive => {
+                                    match closest_pred.strength {
+                                        Gene::HomoDominant => {
+                                            if hunt_chance <= 5 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                        }
+                                        Gene::Hetero => {
+                                            if hunt_chance <= 25 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                        }
+                                        Gene::HomoRecessive => {
+                                            if hunt_chance <= 50 as u8{
+                                                self.mover.energy += (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                                ded_preds.push(closest_pred);
+                                                
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            //seek closest prey
+                            self.mover.state = 1;
+                            self.mover.tick(max_speed, energy, closest_pred.mover.entity);
+                        }
+                    }
+                }
+                Gene::HomoRecessive => {
+                    let mut p_min_dist = 150.0 as f32;
+                    let mut closest_pred: Predator = Predator::default();
+                    for pred in predators.iter().filter(|pred| !self.family.contains(&pred.get_entity().get_id()) ){
+                        let distance = ((pred.mover.entity.x - self.mover.entity.x).powi(2) + (pred.mover.entity.y - self.mover.entity.y).powi(2)).sqrt();
+                        if distance < p_min_dist {
+                            p_min_dist = distance;
+                            closest_pred = pred.clone();
+                        }
+                    }
+
+                    self.mover.state = 3;
+                    self.mover.tick(max_speed, energy, closest_pred.mover.entity);
+                }
+            }
 
             
         }
         else if !grazers.is_empty(){
+            log("hunt graz");
             //if preds empty seek grazers no matter gene
-            let mut min_dist = 0.0 as f32;
-            let mut closest_graz = grazers[0];
+            let mut min_dist = 150.0 as f32;
+            let mut closest_graz = Grazer::default();
             for graz in grazers.iter(){
                 let distance = ((graz.mover.entity.x - self.mover.entity.x).powi(2) + (graz.mover.entity.y - self.mover.entity.y).powi(2)).sqrt();
                 if distance < min_dist {
                     min_dist = distance;
                     closest_graz = graz.clone();
-                    }
                 }
-
+            }
+            log(format!("min dist {}", min_dist).as_str());
+            log(format!("graz speed {} vs pred speed {}", closest_graz.mover.max_speed, self.mover.max_speed).as_str());
             if min_dist <= 5.0 {
                 //hunt math
                 let hunt_chance :u8 = rand::thread_rng().gen_range(0..100);
@@ -1322,16 +1704,15 @@ impl Predator {
 
 
         }
+        
         else {
+            log("wander");
             //not mating and no possible prey around
             self.mover.state = 2;
             
             self.mover.tick(max_speed, energy, self.mover.entity);
             }
             
-        
-
-        
         ret.push(self.clone());
         return (ret, ded_preds, ded_grazs);
     }
