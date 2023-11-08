@@ -615,6 +615,10 @@ impl Mover {
     }
 
     fn flee(mut char: &mut Mover, target: Entity, delta_time: f32) -> &Mover {
+        let dx = target.x - char.entity.x;
+        let dy = target.y - char.entity.y;
+        char.orientation = dy.atan2(dx);
+
         let mut result_x = 0.0;
         let mut result_y = 0.0;
 
@@ -650,7 +654,7 @@ impl Mover {
             return char;
         }
 
-        else if distance > char.max_speed + 5.0
+        else if distance > char.max_speed / 2.0
         //This will also need to be tested. // max sped
         {
             log("arrive at max");
@@ -753,7 +757,7 @@ impl Default for Mover {
             target_y: 0.0,
             energy: 0,
             du: 0.0,
-            max_speed: 10.0
+            max_speed: 15.0
         }
     }
 }
@@ -1243,14 +1247,14 @@ impl Predator {
         // else wander
         match self.speed {
             Gene::HomoDominant => {
-                max_speed = max_speed_hod;
+                self.mover.max_speed = max_speed_hod;
             }
             Gene::Hetero =>
             {
-               max_speed = max_speed_hed;
+                self.mover.max_speed = max_speed_hed;
             }
             Gene::HomoRecessive => {
-                max_speed = max_speed_hor;
+                self.mover.max_speed = max_speed_hor;
             }
         }
 
@@ -1713,7 +1717,10 @@ impl Predator {
             self.mover.tick(max_speed, energy, self.mover.entity);
             }
             
-        ret.push(self.clone());
+        if self.mover.energy > 0 {
+            ret.push(self.clone());
+        }
+        
         return (ret, ded_preds, ded_grazs);
     }
     fn willing_to_mate(&self, rep_energy: u32) -> bool {
