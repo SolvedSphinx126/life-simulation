@@ -7,7 +7,16 @@ extern "C" {
 
 use rand::Rng;
 use uuid::Uuid;
+use std::fs::OpenOptions;
+use std::io::Write;
+use chrono::prelude::*;
+use chrono::Local;
+use std::string::ToString;
+use std::io::prelude::*;
+use std::iter::Once;
+use std::fs::File;
 mod utils;
+use std::env;
 use wasm_bindgen::{prelude::*, JsValue};
 
 #[derive(Default)]
@@ -89,19 +98,23 @@ impl Map {
             //new_grazers.append
 
             //log(format!("current pos {}, {}", grazer.mover.entity.x, grazer.mover.entity.y).as_str());
+
             let mut weird = grazer.clone().tick(
                 self.get_grazer_energy_input(),
                 self.get_grazer_energy_output(),
                 self.get_grazer_energy_to_reproduce(),
+
                 self.get_grazer_max_speed() / 60.0,
                 maintain_speed_ticks,
                 self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 1.0),
                 self.get_plants_within_vicinity(
+
                     grazer.mover.entity.x,
                     grazer.mover.entity.y,
                     150.0,
                 ),
-                self.get_predators_within_vicinity(
+
+                self.get_visible_predators_within_vicinity(
                     grazer.mover.entity.x,
                     grazer.mover.entity.y,
                     25.0,
@@ -111,6 +124,7 @@ impl Map {
                 self.width,
                 self.height,
             );
+
             new_grazers.append(&mut weird.0);
             plants_to_remove.append(&mut weird.1);
         }
@@ -173,11 +187,35 @@ impl Map {
             !ded_preds
                 .iter()
                 .any(|r| r.get_entity().id == obj.get_entity().id) // Change the condition based on your specific criteria
+
         });
+    }
+
+    // returns true if the sight line is not blocked
+    fn check_sight_line(&self, t1x: f32, t1y: f32, t2x: f32, t2y: f32) -> bool {
+        let midpoint = ((t1x + t2x) / 2.0, (t1y + t2y) / 2.0);
+        let dist = get_length(t2x - t1x, t2y - t1y);
+        let possible_obstructions =
+            self.get_rocks_within_vicinity(midpoint.0, midpoint.1, dist / 2.0);
+        let true_obstructions = possible_obstructions
+            .iter()
+            .filter(|rock| {
+                check_single_sight_line(
+                    (rock.entity.get_x(), rock.entity.get_y()),
+                    (t1x, t1y),
+                    (t2x, t2y),
+                    rock.get_diameter() as f32 / 2.0,
+                )
+            })
+            .collect::<Vec<&Rock>>();
+
 
         log(format!("length of plants{}", self.plants.len()).as_str());
         log(format!("length of grazers{}", self.grazers.len()).as_str());
         log(format!("length of predators{}", self.predators.len()).as_str());
+
+        true_obstructions.is_empty()
+
     }
 
     pub fn get_width(&self) -> u32 {
@@ -225,13 +263,17 @@ impl Map {
             .collect::<Vec<Plant>>()
     }
 
-    fn get_grazers_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Grazer> {
-        self.grazers
+
+    fn get_visible_plants_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Plant> {
+        self.plants
             .iter()
-            .filter(|graz| get_length(graz.mover.entity.x - x, graz.mover.entity.y - y) < max_dist)
+            .filter(|plant| get_length(plant.entity.x - x, plant.entity.y - y) < max_dist)
+            .filter(|seer| {
+                self.check_sight_line(seer.get_entity().get_x(), seer.get_entity().get_y(), x, y)
+            })
             //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
-            .map(|graz: &Grazer| graz.clone())
-            .collect::<Vec<Grazer>>()
+            .map(|plant: &Plant| plant.clone())
+            .collect::<Vec<Plant>>()
     }
 
     fn get_rocks_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Rock> {
@@ -243,10 +285,60 @@ impl Map {
             .collect::<Vec<Rock>>()
     }
 
+    fn get_visible_rocks_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Rock> {
+        self.rocks
+            .iter()
+            .filter(|rock| get_length(rock.entity.x - x, rock.entity.y - y) < max_dist)
+            .filter(|seer| {
+                self.check_sight_line(seer.get_entity().get_x(), seer.get_entity().get_y(), x, y)
+            })
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|rock: &Rock| rock.clone())
+            .collect::<Vec<Rock>>()
+    }
+
+    fn get_grazers_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Grazer> {
+        self.grazers
+            .iter()
+            .filter(|graz| get_length(graz.mover.entity.x - x, graz.mover.entity.y - y) < max_dist)
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|graz: &Grazer| graz.clone())
+            .collect::<Vec<Grazer>>()
+    }
+
+    fn get_visible_grazers_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Grazer> {
+        self.grazers
+            .iter()
+            .filter(|graz| get_length(graz.mover.entity.x - x, graz.mover.entity.y - y) < max_dist)
+            .filter(|seer| {
+                self.check_sight_line(seer.get_entity().get_x(), seer.get_entity().get_y(), x, y)
+            })
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|graz: &Grazer| graz.clone())
+            .collect::<Vec<Grazer>>()
+    }
+
     fn get_predators_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Predator> {
         self.predators
             .iter()
             .filter(|pred| get_length(pred.mover.entity.x - x, pred.mover.entity.y - y) < max_dist)
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|pred: &Predator| pred.clone())
+            .collect::<Vec<Predator>>()
+    }
+
+    fn get_visible_predators_within_vicinity(
+        &self,
+        x: f32,
+        y: f32,
+        max_dist: f32,
+    ) -> Vec<Predator> {
+        self.predators
+            .iter()
+            .filter(|pred| get_length(pred.mover.entity.x - x, pred.mover.entity.y - y) < max_dist)
+            .filter(|seer| {
+                self.check_sight_line(seer.get_entity().get_x(), seer.get_entity().get_y(), x, y)
+            })
             //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
             .map(|pred: &Predator| pred.clone())
             .collect::<Vec<Predator>>()
@@ -436,6 +528,93 @@ impl Map {
     pub fn set_predator_max_offspring(&mut self, new_predator_max_offspring: u32) {
         self.predator_max_offspring = new_predator_max_offspring;
     }
+    pub fn generate_report_file_name(&self) -> String{
+        //generate the name of the report file with the time
+        let dt = Local::now();
+	    let mut file_name: String = "SimulationReport-".to_owned();
+        
+	    file_name = file_name + &dt.hour().to_string();
+	    file_name.push_str("-");
+	    file_name = file_name + (&dt.minute().to_string());
+	    file_name.push_str("-");
+	    file_name = file_name + (&dt.second().to_string());
+	    file_name = file_name + ".txt";
+        return String::from(file_name);
+    }
+    pub fn generate_report(&self) -> String {
+
+        //the string with all the data to be returned
+        let mut data: String = "".to_string();
+    
+    	data = data + format!("SIMULATION DATA\n\n").as_str();
+    	
+    	//Print plant data
+    	data = data + format!("Total Plants: {} \n\n", self.plants.len()).as_str();
+    	
+    	for plant in self.plants.iter(){
+            data = data + format!("Plant\n").as_str();
+    		data = data + format!("ID: {}\n", plant.entity.id).as_str();
+    		data = data + format!("X Position: {}\n", plant.entity.x).as_str();
+    		data = data + format!("Y Position: {}\n", plant.entity.y).as_str();
+    		data = data + format!("Generation: {}\n", plant.entity.generation).as_str();
+    		//data.= (format!("Energy: ").as_bytes()); 
+    		data = data + format!("Diameter: {}\n", plant.diameter).as_str();
+    		data = data + format!("\n").as_str();
+    	}
+    	data = data +  (format!("\n").as_str());
+    	
+    	//Print grazer data
+    	data = data + (format!("Total Grazers: {}\n\n", self.grazers.len()).as_str());
+    	
+    	for grazer in self.grazers.iter(){
+            data = data + format!("Grazer\n").as_str();
+    		data = data + format!("ID: {}\n", grazer.mover.entity.id).as_str();
+    		data = data + format!("X Position: {}\n", grazer.mover.entity.x).as_str();
+    		data = data + format!("Y Position: {}\n", grazer.mover.entity.y).as_str();
+    		data = data + format!("Generation: {}\n", grazer.mover.entity.generation).as_str();
+    		data = data + format!("State: {}\n", grazer.mover.state).as_str();//this may change on our enum plan
+    		data = data + format!("X Velocity: {}\n", grazer.mover.velocity_x).as_str();
+    		data = data + format!("Y Velocity: {}\n", grazer.mover.velocity_y).as_str();
+    		data = data + format!("Orentation: {}\n", grazer.mover.orientation).as_str();
+    		data = data + format!("Target X Position: {}\n", grazer.mover.target_x).as_str();
+    		data = data + format!("Target Y Position: {}\n", grazer.mover.target_y).as_str();
+    		data = data + format!("Du: {}\n", grazer.mover.du).as_str();
+    		data = data + format!("Energy: {}\n", grazer.mover.energy).as_str();
+    		data = data + format!("\n").as_str();
+    	}
+    	data = data + format!("\n").as_str();
+    	
+        //Print Predators
+    	data = data + format!("Total Predators: {}\n\n", self.predators.len()).as_str();
+    	
+    	for predator in self.predators.iter(){
+            data = data + (format!("Predator\n").as_str());
+    		data = data + (format!("ID: {}\n", predator.mover.entity.id).as_str());
+    		data = data + (format!("X Position: {}\n", predator.mover.entity.x).as_str());
+    		data = data + (format!("Y Position: {}\n", predator.mover.entity.y).as_str());
+    		data = data + (format!("Generation: {}\n", predator.mover.entity.generation).as_str());
+    		data = data + (format!("State: {}\n", predator.mover.state).as_str());//this may change on our enum plan
+    		data = data + (format!("X Velocity: {}\n", predator.mover.velocity_x).as_str());
+    		data = data + (format!("Y Velocity: {}\n", predator.mover.velocity_y).as_str());
+    		data = data + (format!("Orentation: {}\n", predator.mover.orientation).as_str());
+    		data = data + (format!("Target X Position: {}\n", predator.mover.target_x).as_str());
+    		data = data + (format!("Target Y Position: {}\n", predator.mover.target_y).as_str());
+    		data = data + (format!("Du: {}\n", predator.mover.du).as_str());
+            data = data + (format!("Energy: {}\n", predator.mover.energy).as_str());
+    		data = data + (format!("Genes: {}\n", predator.get_gen_seq()).as_str());
+    		data = data + (format!("Is Pregnant: {}\n", predator.is_pregnant).as_str());
+    		data = data + (format!("Time as Friends: {}\n", predator.time_family).as_str());
+    		//print kids
+    		for child in predator.family.iter(){
+    			data = data + (format!("Friendly ID: {}\n", child).as_str());
+    		}
+    		data = data + (format!("\n").as_str());
+    	
+    	}
+    	data = data + (format!("END REPORT\n").as_str());
+    	//file auto closes as it leaves scope or this function
+        return data;
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -556,6 +735,7 @@ impl Mover {
                 Mover::flee(self, target, 1 as f32, rocks, width, height);
             }
         }
+
 
         // a grazer can only move 10 du when energy is below 25
         //  add a death here for 0 energy
@@ -715,6 +895,7 @@ impl Mover {
         return Mover::update(result_x, result_y, char, delta_time);
     }
 
+
     fn arrive(
         mut char: &mut Mover,
         target: Entity,
@@ -723,6 +904,7 @@ impl Mover {
         width: u32,
         height: u32,
     ) -> &Mover {
+
         let dx = target.x - char.entity.x;
         let dy = target.y - char.entity.y;
         char.orientation = dy.atan2(dx);
@@ -741,6 +923,7 @@ impl Mover {
         //This may need to be tested and fixed later.
         {
             return char;
+
         } else if distance > char.max_speed / 2.0
         //This will also need to be tested. // max sped
         {
@@ -749,6 +932,7 @@ impl Mover {
         } else {
             //slow
             //log("arrive at slow");
+
             goalSpeed = char.max_speed * distance / (char.max_speed + 5.0) //The 1.5 is the slow radius, this needs to be tested.
         }
 
@@ -800,6 +984,7 @@ impl Mover {
 
         // log("max speed is ", char.max_speed);
         //log(format!("WANDER max_speed {}, orientation {}, num {}", char.max_speed, char.orientation, num).as_str());
+
 
         result_y = char.max_speed * char.orientation.sin();
         result_x = char.max_speed * char.orientation.cos();
@@ -960,6 +1145,7 @@ impl Default for Mover {
             energy: 0,
             du: 0.0,
             max_speed: 15.0,
+
         }
     }
 }
@@ -1092,6 +1278,7 @@ impl Grazer {
                                   //log(plants.len());
             if !rocks.is_empty() {
                 let mut min_dist = 150 as f32;
+
                 let mut closest_rock = &rocks[0];
                 for rock in rocks.iter() {
                     let distance = ((rock.entity.x - self.mover.entity.x).powi(2)
@@ -1116,6 +1303,7 @@ impl Grazer {
                 }
             } else {
                 let mut min_dist = 150 as f32;
+
                 let mut closest_pred = &predators[0];
                 for pred in predators.iter() {
                     let distance = ((pred.mover.entity.x - self.mover.entity.x).powi(2)
@@ -1139,6 +1327,7 @@ impl Grazer {
             }
         } else if self.mover.energy >= energy_reproduce {
             log("reproduce");
+
             new_graz.push(self.reproduce());
         }
         // here means no predators
@@ -1146,6 +1335,7 @@ impl Grazer {
         // been at plant
         else if !at_plants.is_empty() && self.ticks_in_loc != 0 {
             log("at plant");
+
             //now check if tick at loc is at max
             self.mover.state = 0;
             log(format!("tick in loc {}", self.ticks_in_loc).as_str());
@@ -1168,7 +1358,9 @@ impl Grazer {
         }
         // first tick at plant
         else if !at_plants.is_empty() && self.ticks_in_loc == 0 {
+
             log("first at plant");
+
             // just arrived at plant
             self.ticks_in_loc = 0;
             self.mover.state = 0;
@@ -1183,6 +1375,7 @@ impl Grazer {
             );
         } else if at_plants.is_empty() && !plants.is_empty() {
             log("seek plant");
+
             //find closest plant and set arrive target
             self.ticks_in_loc = 0;
             self.mover.state = 1;
@@ -1206,6 +1399,7 @@ impl Grazer {
                 height,
             );
         } else {
+
             //start wandering
             log("wander");
             self.mover.state = 2;
@@ -1220,6 +1414,7 @@ impl Grazer {
         }
 
         //log(format!("energy {}", self.mover.energy).as_str());
+
         // only add grazers worthy of life
         if self.mover.energy > 0 as u32 {
             new_graz.push(self.clone());
@@ -1295,13 +1490,7 @@ impl Plant {
         } else if self.is_max_size(max_size) && self.get_next_seed_tick() == cur_tick {
             //any seed event
             let mut copy_thingy = self.seed(
-                width,
-                height,
-                max_size,
-                seed_distance,
-                seed_number,
-                viability,
-                cur_tick,
+                width, height, max_size, seed_distance, seed_number, viability, cur_tick,
             );
             new_plants.append(&mut copy_thingy);
             let new_plant = self.clone();
@@ -2017,23 +2206,23 @@ impl Predator {
     }
     pub fn get_gen_seq(&self) -> String {
         let ag = match self.agression {
-            Gene::Hetero => "Hetero agression, ",
-            Gene::HomoDominant => "Homo Dom agression, ",
-            Gene::HomoRecessive => "Homo Rec agression, ",
+            Gene::Hetero => "Aa, ",
+            Gene::HomoDominant => "AA, ",
+            Gene::HomoRecessive => "aa, ",
         }
         .to_owned();
 
         let strength = match self.strength {
-            Gene::Hetero => "Hetero strength, ",
-            Gene::HomoDominant => "Homo Dom strength, ",
-            Gene::HomoRecessive => "Homo Rec strength, ",
+            Gene::Hetero => "Ss, ",
+            Gene::HomoDominant => "SS, ",
+            Gene::HomoRecessive => "ss, ",
         }
         .to_owned();
 
         let speed = match self.speed {
-            Gene::Hetero => "Hetero speed",
-            Gene::HomoDominant => "Homo Dom speed",
-            Gene::HomoRecessive => "Homo Rec speed",
+            Gene::Hetero => "Ff",
+            Gene::HomoDominant => "FF",
+            Gene::HomoRecessive => "ff",
         }
         .to_owned();
         format!("{}{}{}", ag, strength, speed)
@@ -2145,7 +2334,7 @@ impl Predator {
     }
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Debug)]
 #[wasm_bindgen]
 pub enum Gene {
     HomoDominant,
@@ -2204,4 +2393,43 @@ impl Gene {
 
 fn get_length(x: f32, z: f32) -> f32 {
     return f32::sqrt((x * x) + (z * z));
+}
+
+fn dot_product(endpoint1: (f32, f32), endpoint2: (f32, f32)) -> f32 {
+    endpoint1.0 * endpoint2.0 + endpoint1.1 * endpoint2.1
+}
+
+// returns true if there is an obstruction
+fn check_single_sight_line(
+    center: (f32, f32),
+    endpoint1: (f32, f32),
+    endpoint2: (f32, f32),
+    radius: f32,
+) -> bool {
+    let dot_product = dot_product(
+        (center.0 - endpoint1.0, center.1 - endpoint1.1),
+        (endpoint2.0 - endpoint1.0, endpoint2.1 - endpoint1.1),
+    );
+    let square_mag = get_length(endpoint2.0 - endpoint1.0, endpoint2.0 - endpoint1.0);
+
+    let t = dot_product / square_mag;
+
+    let point_to_test;
+    if t <= 0.0 {
+        point_to_test = endpoint1;
+    } else if t >= 1.0 {
+        point_to_test = endpoint2;
+    } else {
+        point_to_test = (
+            t * (endpoint2.0 - endpoint1.0),
+            t * (endpoint2.1 - endpoint1.1),
+        );
+    }
+
+    let vec_from_center_to_test_point = (center.0 - point_to_test.0, center.1 - point_to_test.1);
+
+    get_length(
+        vec_from_center_to_test_point.0,
+        vec_from_center_to_test_point.1,
+    ) < radius
 }
