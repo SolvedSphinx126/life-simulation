@@ -107,7 +107,7 @@ impl Map {
                 self.get_grazer_max_speed() / 60.0,
                 maintain_speed_ticks,
                 self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 1.0),
-                self.get_plants_within_vicinity(
+                self.get_visible_plants_within_vicinity(
 
                     grazer.mover.entity.x,
                     grazer.mover.entity.y,
@@ -140,13 +140,13 @@ impl Map {
                     pred.mover.get_entity().get_y(),
                     5.0,
                 ),
-                self.get_predators_within_vicinity(
+                self.get_visible_predators_within_vicinity(
                     pred.mover.get_entity().get_x(),
                     pred.mover.get_entity().get_y(),
                     5.0,
                 ),
                 self.get_rocks_within_vicinity(pred.mover.entity.x, pred.mover.entity.y, 150.0),
-                self.get_grazers_within_vicinity(pred.mover.entity.x, pred.mover.entity.y, 150.0),
+                self.get_visible_grazers_within_vicinity(pred.mover.entity.x, pred.mover.entity.y, 150.0),
                 self.predator_max_offspring,
                 self.predator_offspring_energy,
                 self.get_predator_gestation(),
@@ -1272,6 +1272,7 @@ impl Grazer {
         //first check for predators to run from
         if !predators.is_empty() {
             log("pred not emp");
+            self.ticks_in_loc = 0;
             //seek rock away from closest pred
             //set movers target
             self.mover.state = 1; //set state to arrive
@@ -1399,7 +1400,7 @@ impl Grazer {
                 height,
             );
         } else {
-
+            self.ticks_in_loc = 0;
             //start wandering
             log("wander");
             self.mover.state = 2;
