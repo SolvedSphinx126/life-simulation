@@ -717,12 +717,7 @@ impl Mover {
         width: u32,
         height: u32,
     ) {
-        //does this acurately measure distance traveled? the grazers distance able to travel changes after a speed change
-        self.du += f32::sqrt(self.velocity_x.powi(2) + self.velocity_y.powi(2));
-        if self.du > 5.0 {
-            self.du -= 5.0;
-            self.energy -= energy;
-        }
+        
 
         if self.energy >= energy {
             // move here
@@ -734,6 +729,15 @@ impl Mover {
             } else if self.state == 3 {
                 Mover::flee(self, target, 1 as f32, rocks, width, height);
             }
+
+            self.du += f32::sqrt(self.velocity_x.powi(2) + self.velocity_y.powi(2));
+            if self.du > 5.0 {
+                self.du -= 5.0;
+                self.energy -= energy;
+            }
+        }
+        else if self.energy < energy && self.energy != 0 {
+            self.energy -= 1;
         }
 
 
