@@ -34,6 +34,9 @@ pub struct Map {
     max_seed_cast_distance: u32,
     max_seed_number: u32,
     seed_viability: f32,
+    max_graz: u32,
+    max_plant: u32,
+    max_pred: u32,
     //grazer
     init_grazer_count: u32,
     grazer_energy_input: u32,
@@ -61,8 +64,16 @@ pub struct Map {
 
 #[wasm_bindgen]
 impl Map {
-    pub fn new() -> Map {
-        Map::default()
+    pub fn new() -> Map 
+    {
+        Map{
+            max_graz: 0,
+            max_plant: 0,
+            max_pred: 0,
+            ..Map::default()
+        }
+
+
     }
     fn get_current_tick(&self) -> u64 {
         self.current_tick
@@ -189,6 +200,17 @@ impl Map {
                 .iter()
                 .any(|r| r.get_entity().id == obj.get_entity().id) // Change the condition based on your specific criteria
         });
+
+        //set new maxs
+        if self.plants.len() as u32 > self.max_plant{
+            self.max_plant = self.plants.len() as u32;
+        }
+        if self.grazers.len() as u32 > self.max_graz{
+            self.max_graz = self.grazers.len() as u32;
+        }
+        if self.predators.len() as u32 > self.max_pred{
+            self.max_pred = self.predators.len() as u32;
+        }
     }
 
     // returns true if the sight line is not blocked
@@ -609,6 +631,16 @@ impl Map {
         data = data + (format!("END REPORT\n").as_str());
         //file auto closes as it leaves scope or this function
         return data;
+    }
+    pub fn score(&self) -> u32 {
+        //current tick + ((max plant * 2) + (max grazer * 1) + (max predator * 3) * (2 if extinct is grazer, else 1)
+        let mut score = self.current_tick as u32;
+        score += (self.max_plant * 2) + (self.max_graz * 1) + (self.max_pred * 3);
+        if self.grazers.len() == 0 {
+            score = score * 2;
+        }
+
+        return score;
     }
 }
 
