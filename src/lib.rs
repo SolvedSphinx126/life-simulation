@@ -930,9 +930,7 @@ impl Mover {
         width: u32,
         height: u32,
     ) -> &Mover {
-        let dx = target.x - char.entity.x;
-        let dy = target.y - char.entity.y;
-        char.orientation = dy.atan2(dx);
+
 
         let mut result_x = 0.0;
         let mut result_y = 0.0;
@@ -1124,6 +1122,10 @@ impl Mover {
 
         char.entity.x += char.velocity_x * delta_time;
         char.entity.y += char.velocity_y * delta_time;
+
+        let dx = result_x;
+        let dy = result_y;
+        char.orientation = dy.atan2(dx);
 
         return char;
     }
