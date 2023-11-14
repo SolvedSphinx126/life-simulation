@@ -5,16 +5,16 @@ extern "C" {
     fn log(s: &str);
 }
 
-use rand::Rng;
-use uuid::Uuid;
-use std::fs::OpenOptions;
-use std::io::Write;
 use chrono::prelude::*;
 use chrono::Local;
-use std::string::ToString;
-use std::io::prelude::*;
-use std::iter::Once;
+use rand::Rng;
 use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
+use std::io::Write;
+use std::iter::Once;
+use std::string::ToString;
+use uuid::Uuid;
 mod utils;
 use std::env;
 use wasm_bindgen::{prelude::*, JsValue};
@@ -103,17 +103,14 @@ impl Map {
                 self.get_grazer_energy_input(),
                 self.get_grazer_energy_output(),
                 self.get_grazer_energy_to_reproduce(),
-
                 self.get_grazer_max_speed() / 60.0,
                 maintain_speed_ticks,
                 self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 1.0),
                 self.get_visible_plants_within_vicinity(
-
                     grazer.mover.entity.x,
                     grazer.mover.entity.y,
                     150.0,
                 ),
-
                 self.get_visible_predators_within_vicinity(
                     grazer.mover.entity.x,
                     grazer.mover.entity.y,
@@ -138,15 +135,19 @@ impl Map {
                 self.get_predators_within_vicinity(
                     pred.mover.get_entity().get_x(),
                     pred.mover.get_entity().get_y(),
-                    5.0,
+                    150.0,
                 ),
                 self.get_visible_predators_within_vicinity(
                     pred.mover.get_entity().get_x(),
                     pred.mover.get_entity().get_y(),
-                    5.0,
+                    150.0,
                 ),
                 self.get_rocks_within_vicinity(pred.mover.entity.x, pred.mover.entity.y, 150.0),
-                self.get_visible_grazers_within_vicinity(pred.mover.entity.x, pred.mover.entity.y, 150.0),
+                self.get_visible_grazers_within_vicinity(
+                    pred.mover.entity.x,
+                    pred.mover.entity.y,
+                    150.0,
+                ),
                 self.predator_max_offspring,
                 self.predator_offspring_energy,
                 self.get_predator_gestation(),
@@ -187,7 +188,6 @@ impl Map {
             !ded_preds
                 .iter()
                 .any(|r| r.get_entity().id == obj.get_entity().id) // Change the condition based on your specific criteria
-
         });
     }
 
@@ -209,13 +209,11 @@ impl Map {
             })
             .collect::<Vec<&Rock>>();
 
-
         log(format!("length of plants{}", self.plants.len()).as_str());
         log(format!("length of grazers{}", self.grazers.len()).as_str());
         log(format!("length of predators{}", self.predators.len()).as_str());
 
         true_obstructions.is_empty()
-
     }
 
     pub fn get_width(&self) -> u32 {
@@ -262,7 +260,6 @@ impl Map {
             .map(|plant: &Plant| plant.clone())
             .collect::<Vec<Plant>>()
     }
-
 
     fn get_visible_plants_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Plant> {
         self.plants
@@ -528,91 +525,89 @@ impl Map {
     pub fn set_predator_max_offspring(&mut self, new_predator_max_offspring: u32) {
         self.predator_max_offspring = new_predator_max_offspring;
     }
-    pub fn generate_report_file_name(&self) -> String{
+    pub fn generate_report_file_name(&self) -> String {
         //generate the name of the report file with the time
         let dt = Local::now();
-	    let mut file_name: String = "SimulationReport-".to_owned();
-        
-	    file_name = file_name + &dt.hour().to_string();
-	    file_name.push_str("-");
-	    file_name = file_name + (&dt.minute().to_string());
-	    file_name.push_str("-");
-	    file_name = file_name + (&dt.second().to_string());
-	    file_name = file_name + ".txt";
+        let mut file_name: String = "SimulationReport-".to_owned();
+
+        file_name = file_name + &dt.hour().to_string();
+        file_name.push_str("-");
+        file_name = file_name + (&dt.minute().to_string());
+        file_name.push_str("-");
+        file_name = file_name + (&dt.second().to_string());
+        file_name = file_name + ".txt";
         return String::from(file_name);
     }
     pub fn generate_report(&self) -> String {
-
         //the string with all the data to be returned
         let mut data: String = "".to_string();
-    
-    	data = data + format!("SIMULATION DATA\n\n").as_str();
-    	
-    	//Print plant data
-    	data = data + format!("Total Plants: {} \n\n", self.plants.len()).as_str();
-    	
-    	for plant in self.plants.iter(){
+
+        data = data + format!("SIMULATION DATA\n\n").as_str();
+
+        //Print plant data
+        data = data + format!("Total Plants: {} \n\n", self.plants.len()).as_str();
+
+        for plant in self.plants.iter() {
             data = data + format!("Plant\n").as_str();
-    		data = data + format!("ID: {}\n", plant.entity.id).as_str();
-    		data = data + format!("X Position: {}\n", plant.entity.x).as_str();
-    		data = data + format!("Y Position: {}\n", plant.entity.y).as_str();
-    		data = data + format!("Generation: {}\n", plant.entity.generation).as_str();
-    		//data.= (format!("Energy: ").as_bytes()); 
-    		data = data + format!("Diameter: {}\n", plant.diameter).as_str();
-    		data = data + format!("\n").as_str();
-    	}
-    	data = data +  (format!("\n").as_str());
-    	
-    	//Print grazer data
-    	data = data + (format!("Total Grazers: {}\n\n", self.grazers.len()).as_str());
-    	
-    	for grazer in self.grazers.iter(){
+            data = data + format!("ID: {}\n", plant.entity.id).as_str();
+            data = data + format!("X Position: {}\n", plant.entity.x).as_str();
+            data = data + format!("Y Position: {}\n", plant.entity.y).as_str();
+            data = data + format!("Generation: {}\n", plant.entity.generation).as_str();
+            //data.= (format!("Energy: ").as_bytes());
+            data = data + format!("Diameter: {}\n", plant.diameter).as_str();
+            data = data + format!("\n").as_str();
+        }
+        data = data + (format!("\n").as_str());
+
+        //Print grazer data
+        data = data + (format!("Total Grazers: {}\n\n", self.grazers.len()).as_str());
+
+        for grazer in self.grazers.iter() {
             data = data + format!("Grazer\n").as_str();
-    		data = data + format!("ID: {}\n", grazer.mover.entity.id).as_str();
-    		data = data + format!("X Position: {}\n", grazer.mover.entity.x).as_str();
-    		data = data + format!("Y Position: {}\n", grazer.mover.entity.y).as_str();
-    		data = data + format!("Generation: {}\n", grazer.mover.entity.generation).as_str();
-    		data = data + format!("State: {}\n", grazer.mover.state).as_str();//this may change on our enum plan
-    		data = data + format!("X Velocity: {}\n", grazer.mover.velocity_x).as_str();
-    		data = data + format!("Y Velocity: {}\n", grazer.mover.velocity_y).as_str();
-    		data = data + format!("Orentation: {}\n", grazer.mover.orientation).as_str();
-    		data = data + format!("Target X Position: {}\n", grazer.mover.target_x).as_str();
-    		data = data + format!("Target Y Position: {}\n", grazer.mover.target_y).as_str();
-    		data = data + format!("Du: {}\n", grazer.mover.du).as_str();
-    		data = data + format!("Energy: {}\n", grazer.mover.energy).as_str();
-    		data = data + format!("\n").as_str();
-    	}
-    	data = data + format!("\n").as_str();
-    	
+            data = data + format!("ID: {}\n", grazer.mover.entity.id).as_str();
+            data = data + format!("X Position: {}\n", grazer.mover.entity.x).as_str();
+            data = data + format!("Y Position: {}\n", grazer.mover.entity.y).as_str();
+            data = data + format!("Generation: {}\n", grazer.mover.entity.generation).as_str();
+            data = data + format!("State: {}\n", grazer.mover.state).as_str(); //this may change on our enum plan
+            data = data + format!("X Velocity: {}\n", grazer.mover.velocity_x).as_str();
+            data = data + format!("Y Velocity: {}\n", grazer.mover.velocity_y).as_str();
+            data = data + format!("Orentation: {}\n", grazer.mover.orientation).as_str();
+            data = data + format!("Target X Position: {}\n", grazer.mover.target_x).as_str();
+            data = data + format!("Target Y Position: {}\n", grazer.mover.target_y).as_str();
+            data = data + format!("Du: {}\n", grazer.mover.du).as_str();
+            data = data + format!("Energy: {}\n", grazer.mover.energy).as_str();
+            data = data + format!("\n").as_str();
+        }
+        data = data + format!("\n").as_str();
+
         //Print Predators
-    	data = data + format!("Total Predators: {}\n\n", self.predators.len()).as_str();
-    	
-    	for predator in self.predators.iter(){
+        data = data + format!("Total Predators: {}\n\n", self.predators.len()).as_str();
+
+        for predator in self.predators.iter() {
             data = data + (format!("Predator\n").as_str());
-    		data = data + (format!("ID: {}\n", predator.mover.entity.id).as_str());
-    		data = data + (format!("X Position: {}\n", predator.mover.entity.x).as_str());
-    		data = data + (format!("Y Position: {}\n", predator.mover.entity.y).as_str());
-    		data = data + (format!("Generation: {}\n", predator.mover.entity.generation).as_str());
-    		data = data + (format!("State: {}\n", predator.mover.state).as_str());//this may change on our enum plan
-    		data = data + (format!("X Velocity: {}\n", predator.mover.velocity_x).as_str());
-    		data = data + (format!("Y Velocity: {}\n", predator.mover.velocity_y).as_str());
-    		data = data + (format!("Orentation: {}\n", predator.mover.orientation).as_str());
-    		data = data + (format!("Target X Position: {}\n", predator.mover.target_x).as_str());
-    		data = data + (format!("Target Y Position: {}\n", predator.mover.target_y).as_str());
-    		data = data + (format!("Du: {}\n", predator.mover.du).as_str());
+            data = data + (format!("ID: {}\n", predator.mover.entity.id).as_str());
+            data = data + (format!("X Position: {}\n", predator.mover.entity.x).as_str());
+            data = data + (format!("Y Position: {}\n", predator.mover.entity.y).as_str());
+            data = data + (format!("Generation: {}\n", predator.mover.entity.generation).as_str());
+            data = data + (format!("State: {}\n", predator.mover.state).as_str()); //this may change on our enum plan
+            data = data + (format!("X Velocity: {}\n", predator.mover.velocity_x).as_str());
+            data = data + (format!("Y Velocity: {}\n", predator.mover.velocity_y).as_str());
+            data = data + (format!("Orentation: {}\n", predator.mover.orientation).as_str());
+            data = data + (format!("Target X Position: {}\n", predator.mover.target_x).as_str());
+            data = data + (format!("Target Y Position: {}\n", predator.mover.target_y).as_str());
+            data = data + (format!("Du: {}\n", predator.mover.du).as_str());
             data = data + (format!("Energy: {}\n", predator.mover.energy).as_str());
-    		data = data + (format!("Genes: {}\n", predator.get_gen_seq()).as_str());
-    		data = data + (format!("Is Pregnant: {}\n", predator.is_pregnant).as_str());
-    		data = data + (format!("Time as Friends: {}\n", predator.time_family).as_str());
-    		//print kids
-    		for child in predator.family.iter(){
-    			data = data + (format!("Friendly ID: {}\n", child).as_str());
-    		}
-    		data = data + (format!("\n").as_str());
-    	
-    	}
-    	data = data + (format!("END REPORT\n").as_str());
-    	//file auto closes as it leaves scope or this function
+            data = data + (format!("Genes: {}\n", predator.get_gen_seq()).as_str());
+            data = data + (format!("Is Pregnant: {}\n", predator.is_pregnant).as_str());
+            data = data + (format!("Time as Friends: {}\n", predator.time_family).as_str());
+            //print kids
+            for child in predator.family.iter() {
+                data = data + (format!("Friendly ID: {}\n", child).as_str());
+            }
+            data = data + (format!("\n").as_str());
+        }
+        data = data + (format!("END REPORT\n").as_str());
+        //file auto closes as it leaves scope or this function
         return data;
     }
 }
@@ -717,8 +712,6 @@ impl Mover {
         width: u32,
         height: u32,
     ) {
-        
-
         if self.energy >= energy {
             // move here
 
@@ -735,11 +728,9 @@ impl Mover {
                 self.du -= 5.0;
                 self.energy -= energy;
             }
-        }
-        else if self.energy < energy && self.energy != 0 {
+        } else if self.energy < energy && self.energy != 0 {
             self.energy -= 1;
         }
-
 
         // a grazer can only move 10 du when energy is below 25
         //  add a death here for 0 energy
@@ -899,7 +890,6 @@ impl Mover {
         return Mover::update(result_x, result_y, char, delta_time);
     }
 
-
     fn arrive(
         mut char: &mut Mover,
         target: Entity,
@@ -908,7 +898,6 @@ impl Mover {
         width: u32,
         height: u32,
     ) -> &Mover {
-
         let dx = target.x - char.entity.x;
         let dy = target.y - char.entity.y;
         char.orientation = dy.atan2(dx);
@@ -927,7 +916,6 @@ impl Mover {
         //This may need to be tested and fixed later.
         {
             return char;
-
         } else if distance > char.max_speed / 2.0
         //This will also need to be tested. // max sped
         {
@@ -988,7 +976,6 @@ impl Mover {
 
         // log("max speed is ", char.max_speed);
         //log(format!("WANDER max_speed {}, orientation {}, num {}", char.max_speed, char.orientation, num).as_str());
-
 
         result_y = char.max_speed * char.orientation.sin();
         result_x = char.max_speed * char.orientation.cos();
@@ -1149,7 +1136,6 @@ impl Default for Mover {
             energy: 0,
             du: 0.0,
             max_speed: 15.0,
-
         }
     }
 }
@@ -1363,7 +1349,6 @@ impl Grazer {
         }
         // first tick at plant
         else if !at_plants.is_empty() && self.ticks_in_loc == 0 {
-
             log("first at plant");
 
             // just arrived at plant
@@ -1495,7 +1480,13 @@ impl Plant {
         } else if self.is_max_size(max_size) && self.get_next_seed_tick() == cur_tick {
             //any seed event
             let mut copy_thingy = self.seed(
-                width, height, max_size, seed_distance, seed_number, viability, cur_tick,
+                width,
+                height,
+                max_size,
+                seed_distance,
+                seed_number,
+                viability,
+                cur_tick,
             );
             new_plants.append(&mut copy_thingy);
             let new_plant = self.clone();
@@ -1673,6 +1664,8 @@ impl Predator {
         let mut ded_preds = Vec::new();
         let mut predators = preds.clone();
         predators.retain(|obj| self.get_entity().get_id() != obj.get_entity().get_id());
+        predators.retain(|pred| !self.family.contains(&pred.get_entity().get_id()));
+        predators.retain(|pred| !pred.family.contains(&self.get_entity().get_id()));
         //(|pred| pred.get_entity().get_id() != self.get_entity().get_id());
         // if energy and not pregnant
         // has a mate
@@ -1726,8 +1719,10 @@ impl Predator {
                     ));
                 }
             }
-        } else if self.willing_to_mate(energy_to_reproduce) {
+        } 
+        if self.willing_to_mate(energy_to_reproduce) && !self.is_pregnant{
             // if vaible candidate is found
+            log("trying to find mate");
             let pred = mates
                 .iter()
                 .filter(|p| p.willing_to_mate(energy_to_reproduce))
@@ -1736,12 +1731,24 @@ impl Predator {
                 .next();
 
             if let Some(pred) = pred {
-                self.mate(&mut pred.clone(), cur_tick, gestation);
-                log("viable mate found");
+                log("in the if");
+                let distance = get_length(
+                    self.get_entity().x - pred.get_entity().x,
+                    self.get_entity().y - pred.get_entity().y,
+                );
+                if distance < 5.0 {
+                    log("mating");
+                    self.mate(&mut pred.clone(), cur_tick, gestation);
+                } else {
+
+                    log("seeking");
+                    self.mover.state = 1;
+                    self.mover
+                        .tick(max_speed, energy, pred.mover.entity, rocks, width, height);
+                }
             }
         }
-
-        if !predators.is_empty() {
+        else if !predators.is_empty() {
             self.ticks_at_speed += 1;
             log("predators not empty");
             // if preds not empty
@@ -1756,7 +1763,7 @@ impl Predator {
                     let mut closest_pred: Predator = Predator::default();
                     for pred in predators
                         .iter()
-                        .filter(|pred| !self.family.contains(&pred.get_entity().get_id()))
+                        
                     {
                         let distance = ((pred.mover.entity.x - self.mover.entity.x).powi(2)
                             + (pred.mover.entity.y - self.mover.entity.y).powi(2))
@@ -2303,7 +2310,7 @@ impl Predator {
         &mut self,
         max_offspring: u32,
         new_energy: u32,
-        other: Predator,
+        other:  Predator,
         energy_to_reproduce: u32,
         new_x: f32,
         new_y: f32,
@@ -2315,7 +2322,7 @@ impl Predator {
         // loop through each child
         for _ in 0..children {
             let new_genes = Predator::mate_genes(self, &other);
-            let new_pred = Predator {
+            let mut new_pred = Predator {
                 agression: new_genes.0,
                 strength: new_genes.1,
                 speed: new_genes.2,
@@ -2330,7 +2337,11 @@ impl Predator {
                 },
                 ..Default::default()
             };
-            //TODO need to add family logic
+            //TODO need to add family logic bot parents and child getting both parents
+            self.add_family(new_pred.get_entity().get_id());
+            new_pred.add_family(other.get_entity().get_id());
+            new_pred.add_family(self.get_entity().get_id());
+
             preds.push(new_pred);
         }
         self.mover.energy -= energy_to_reproduce;
