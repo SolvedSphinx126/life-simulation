@@ -231,9 +231,9 @@ impl Map {
             })
             .collect::<Vec<&Rock>>();
 
-        log(format!("length of plants{}", self.plants.len()).as_str());
-        log(format!("length of grazers{}", self.grazers.len()).as_str());
-        log(format!("length of predators{}", self.predators.len()).as_str());
+        //log(format!("length of plants{}", self.plants.len()).as_str());
+        //log(format!("length of grazers{}", self.grazers.len()).as_str());
+        //log(format!("length of predators{}", self.predators.len()).as_str());
 
         true_obstructions.is_empty()
     }
@@ -911,10 +911,9 @@ impl Mover {
         result_x = char.entity.x - target.x;
         result_y = char.entity.y - target.y;
 
-        if !rocks.is_empty() {
-            (result_x, result_y) =
-                Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
-        }
+        log("in flee");
+            (result_x, result_y) = Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
+    
         (result_x, result_y) = Mover::normalize(result_x, result_y);
         result_x = result_x * char.max_speed;
         result_y = result_y * char.max_speed;
@@ -970,10 +969,8 @@ impl Mover {
         result_x = goal_velocity_x;
         result_y = goal_velocity_y;
 
-        if !rocks.is_empty() {
-            log("trying to avoid rock");
-            (result_x, result_y) =
-                Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
+        log("in arrive");
+            (result_x, result_y) = Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
 
             let tester = get_length(result_x, result_y);
             if tester > char.max_speed {
@@ -981,7 +978,7 @@ impl Mover {
                 result_x = result_x * char.max_speed;
                 result_y = result_y * char.max_speed;
             }
-        }
+        
 
         /* These 2 lines might not be necessary, maybe need testing? maybe not?
         result_x = result_x / char.ttt;
@@ -1004,7 +1001,7 @@ impl Mover {
         let mut result_orien = 0.0;
         let num = rand::thread_rng().gen_range(-1.0..1.0);
 
-        // log("max speed is ", char.max_speed);
+        
         //log(format!("WANDER max_speed {}, orientation {}, num {}", char.max_speed, char.orientation, num).as_str());
 
         result_y = char.max_speed * char.orientation.sin();
@@ -1012,12 +1009,9 @@ impl Mover {
         result_orien = num * max_rotation;
 
         //log(format!("WANDER result x {}, result y {}, delta time{}", result_x, result_y, delta_time).as_str());
-
-        if !rocks.is_empty() {
-            log("trying to avoid rock");
-            (result_x, result_y) =
-                Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
-        }
+        log("in wander");
+        (result_x, result_y) = Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
+  
 
         return Mover::kinematicupdate(result_x, result_y, result_orien, char, delta_time);
     }
@@ -1035,20 +1029,22 @@ impl Mover {
         let mut interim_dis_y = 0.0 as f32;
 
         let mut min_dist = 150 as f32;
-        let mut closest_rock = &rocks[0];
+        let mut closest_rock = &Rock::default();
         let mut radius = 0.0;
-
-        for rock in rocks.iter() {
-            let distance = ((rock.entity.x - char.entity.x).powi(2)
-                + (rock.entity.y - char.entity.y).powi(2))
-            .sqrt();
-            if distance < min_dist {
-                min_dist = distance;
-                closest_rock = rock;
-                radius = rock.diameter as f32 / 2.0;
+        log("in avoid");
+        if !rocks.is_empty() {
+            log("in rocks is not empty in avoid");
+            for rock in rocks.iter() {
+                let distance = ((rock.entity.x - char.entity.x).powi(2)
+                    + (rock.entity.y - char.entity.y).powi(2))
+                .sqrt();
+                if distance < min_dist {
+                    min_dist = distance;
+                    closest_rock = rock;
+                    radius = rock.diameter as f32 / 2.0;
+                }
             }
-        }
-
+            
         if min_dist <= radius + 8.0 && min_dist > radius + 2.0 {
             //log("close but not too close");
             interim_dis_x = char.entity.x - closest_rock.entity.x;
@@ -1088,9 +1084,12 @@ impl Mover {
 
             return (result_x, result_y);
         }
+        }
+
+
 
         if (char.entity.x + char.velocity_x) >= width as f32
-            && (char.entity.x + char.velocity_x) <= 0.0
+            || (char.entity.x + char.velocity_x) <= 0.0
         {
             //log("close to wall side");
             // the result line might not be necessary
@@ -1099,7 +1098,7 @@ impl Mover {
         }
 
         if (char.entity.y + char.velocity_y) >= height as f32
-            && (char.entity.y + char.velocity_y) <= 0.0
+            || (char.entity.y + char.velocity_y) <= 0.0
         {
             //log("close to wall top");
             // the result line might not be necessary
@@ -1716,20 +1715,24 @@ impl Predator {
         // else if seek food (within check about genetcs and type of prey)
         // with in this check if at prey then using genetcs calulate chance fo catch and kill and gain energy
         // else wander
-        match self.speed {
-            Gene::HomoDominant => {
-                self.mover.max_speed = max_speed_hod;
-            }
-            Gene::Hetero => {
-                self.mover.max_speed = max_speed_hed;
-            }
-            Gene::HomoRecessive => {
-                self.mover.max_speed = max_speed_hor;
+        
+        if self.mover.max_speed == 15.0 {
+            match self.speed {
+                Gene::HomoDominant => {
+                    self.mover.max_speed = max_speed_hod;
+                }
+                Gene::Hetero => {
+                    self.mover.max_speed = max_speed_hed;
+                }
+                Gene::HomoRecessive => {
+                    self.mover.max_speed = max_speed_hor;
+                }
             }
         }
+
         if self.ticks_at_speed > predator_maintain_speed {
             if self.ticks_at_speed % 15 == 0 {
-                self.mover.max_speed = self.mover.max_speed - 1.0;
+                self.mover.max_speed = self.mover.max_speed - (1.0 / 60.0);
             }
             if self.mover.max_speed <= 0.0 {
                 self.cooldown_speed += 1;
@@ -1738,8 +1741,21 @@ impl Predator {
         if self.cooldown_speed == 10 {
             self.ticks_at_speed = 0;
             self.cooldown_speed = 0;
+            match self.speed {
+                Gene::HomoDominant => {
+                    self.mover.max_speed = max_speed_hod;
+                }
+                Gene::Hetero => {
+                    self.mover.max_speed = max_speed_hed;
+                }
+                Gene::HomoRecessive => {
+                    self.mover.max_speed = max_speed_hor;
+                }
+            }
         }
 
+
+        log(format!("max speed is {}", self.mover.max_speed ).as_str());
         if self.is_pregnant {
             if self.get_ticks_til_birth() < cur_tick {
                 if let Some(partner) = partner {
@@ -1765,17 +1781,17 @@ impl Predator {
                 .next();
 
             if let Some(pred) = pred {
-                log("in the if");
+                //log("in the if");
                 let distance = get_length(
                     self.get_entity().x - pred.get_entity().x,
                     self.get_entity().y - pred.get_entity().y,
                 );
                 if distance < 5.0 {
-                    log("mating");
+                    //log("mating");
                     self.mate(&mut pred.clone(), cur_tick, gestation);
                 } else {
 
-                    log("seeking");
+                    //log("seeking");
                     self.mover.state = 1;
                     self.mover
                         .tick(max_speed, energy, pred.mover.entity, rocks, width, height);
@@ -1784,7 +1800,7 @@ impl Predator {
         }
         else if !predators.is_empty() {
             self.ticks_at_speed += 1;
-            log("predators not empty");
+            //log("predators not empty");
             // if preds not empty
             //check if at a valid prey before seeking
             //AA seek closest prey source wether pred or graz
@@ -1985,7 +2001,7 @@ impl Predator {
                         }
                     }
                     if !grazers.is_empty() {
-                        log("grazers not empty");
+                        //log("grazers not empty");
                         let mut g_min_dist = 150 as f32;
                         let mut closest_graz = Grazer::default();
                         for graz in grazers.iter() {
@@ -2172,7 +2188,7 @@ impl Predator {
                 }
             }
         } else if !grazers.is_empty() {
-            log("hunt graz");
+            //log("hunt graz");
             self.ticks_at_speed += 1;
             //if preds empty seek grazers no matter gene
             let mut min_dist = 150.0 as f32;
@@ -2186,12 +2202,12 @@ impl Predator {
                     closest_graz = graz.clone();
                 }
             }
-            log(format!("min dist {}", min_dist).as_str());
-            log(format!(
-                "graz speed {} vs pred speed {}",
-                closest_graz.mover.max_speed, self.mover.max_speed
-            )
-            .as_str());
+            //log(format!("min dist {}", min_dist).as_str());
+            //log(format!(
+            //    "graz speed {} vs pred speed {}",
+            //    closest_graz.mover.max_speed, self.mover.max_speed
+            //)
+            //.as_str());
             if min_dist <= 5.0 {
                 //hunt math
                 let hunt_chance: u8 = rand::thread_rng().gen_range(0..100);
@@ -2233,7 +2249,7 @@ impl Predator {
                 );
             }
         } else {
-            log("wander");
+            //log("wander");
             //not mating and no possible prey around
             self.mover.state = 2;
 
