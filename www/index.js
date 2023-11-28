@@ -69,7 +69,7 @@ const render = async () => {
     ctx.canvas.height = ctx.canvas.clientHeight
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
     // perform calculation for movement functions before any entities are drawn
-    
+
     drawPlants();
     drawPredators();
     drawGrazers();
@@ -151,7 +151,7 @@ fileInputElement.addEventListener("change", e => fileInputElement.files[0].text(
     var grazers = simulation.childNodes[2];
     var predators = simulation.childNodes[3];
     var obstacles = simulation.childNodes[4];
-    
+
     // map inputs
     map.set_width(parseFloat(landBounds.getElementsByTagName("WIDTH")[0].childNodes[0].nodeValue));
     map.set_height(parseFloat(landBounds.getElementsByTagName("HEIGHT")[0].childNodes[0].nodeValue));
@@ -164,7 +164,7 @@ fileInputElement.addEventListener("change", e => fileInputElement.files[0].text(
     map.set_max_seed_number(parseInt(plants.getElementsByTagName("MAX_SEED_NUMBER")[0].childNodes[0].nodeValue));
     map.set_max_size(parseFloat(plants.getElementsByTagName("MAX_SIZE")[0].childNodes[0].nodeValue));
     map.set_seed_viability(parseFloat(plants.getElementsByTagName("SEED_VIABILITY")[0].childNodes[0].nodeValue));
-    
+
     plants = plants.getElementsByTagName("PLANT");
     for (var plant of plants) {
         var plantX = parseInt(plant.getElementsByTagName("X_POS")[0].childNodes[0].nodeValue);
@@ -200,7 +200,7 @@ fileInputElement.addEventListener("change", e => fileInputElement.files[0].text(
     map.set_predator_max_offspring(parseInt(predators.getElementsByTagName("P_MAX_OFFSPRING")[0].childNodes[0].nodeValue));
     map.set_predator_gestation(parseFloat(predators.getElementsByTagName("P_GESTATION")[0].childNodes[0].nodeValue));
     map.set_predator_offspring_energy(parseInt(predators.getElementsByTagName("P_OFFSPRING_ENERGY")[0].childNodes[0].nodeValue));
-    
+
     predators = predators.getElementsByTagName("PREDATOR");
     for (var predator of predators) {
         var predatorX = parseInt(predator.getElementsByTagName("X_POS")[0].childNodes[0].nodeValue);
@@ -208,7 +208,7 @@ fileInputElement.addEventListener("change", e => fileInputElement.files[0].text(
         var predatorEnergy = parseInt(predator.getElementsByTagName("P_ENERGY_LEVEL")[0].childNodes[0].nodeValue);
         var genes = predator.getElementsByTagName("GENOTYPE")[0].childNodes[0].nodeValue;
         map.add_predator(predatorX, predatorY, predatorEnergy, genes);
-    }    
+    }
 
     var rocks = obstacles.getElementsByTagName("OBSTACLE");
     for (var rock of rocks) {
