@@ -69,10 +69,11 @@ const render = async () => {
     ctx.canvas.height = ctx.canvas.clientHeight
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
     // perform calculation for movement functions before any entities are drawn
-    drawRocks();
+    
     drawPlants();
     drawPredators();
     drawGrazers();
+    drawRocks();
     map.tick();
     let predCount = document.getElementById("predCount");
     predCount.innerHTML = map.get_predators().length;
