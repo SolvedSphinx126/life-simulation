@@ -69,10 +69,11 @@ const render = async () => {
     ctx.canvas.height = ctx.canvas.clientHeight
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
     // perform calculation for movement functions before any entities are drawn
-    drawRocks();
+    
     drawPlants();
     drawPredators();
     drawGrazers();
+    drawRocks();
     map.tick();
     let predCount = document.getElementById("predCount");
     predCount.innerHTML = map.get_predators().length;
@@ -93,18 +94,52 @@ fileInputElement.addEventListener("click", e => {
 
 var fileInputElement = document.getElementById("10x");
 fileInputElement.addEventListener("click", e => {
-    setWait(100)
+    setWait(100);
 })
 
 var fileInputElement = document.getElementById("50x");
 fileInputElement.addEventListener("click", e => {
-    setWait(20)
+    setWait(20);
 })
 
 var fileInputElement = document.getElementById("100x");
 fileInputElement.addEventListener("click", e => {
-    setWait(10)
+    setWait(10);
 })
+
+var genReportButton = document.getElementById("generate report");
+genReportButton.addEventListener("click", e => {
+    //get filename
+    var filename = map.generate_report_file_name();
+
+    //get data from sim
+    var mapData = map.generate_report();
+
+    //create file trying blob
+    var blob = new Blob([mapData], {type: "text/plain",});
+
+    const blobURL = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = blobURL;
+    link.download = filename;
+
+    document.body.appendChild(link);
+
+    link.dispatchEvent(
+        new MouseEvent('click',{
+            bubbles: true,
+            cancelable: true,
+            view: window
+        })
+    );
+
+   document.body.removeChild(link);
+
+    
+})
+
 var fileInputElement = document.getElementById("file-input");
 fileInputElement.addEventListener("change", e => fileInputElement.files[0].text().then((xmlText) => {
     var xmlText = xmlText.replace(/\s/g,"");

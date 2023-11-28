@@ -5,10 +5,18 @@ extern "C" {
     fn log(s: &str);
 }
 
-
+use chrono::prelude::*;
+use chrono::Local;
 use rand::Rng;
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
+use std::io::Write;
+use std::iter::Once;
+use std::string::ToString;
 use uuid::Uuid;
 mod utils;
+use std::env;
 use wasm_bindgen::{prelude::*, JsValue};
 
 #[derive(Default)]
@@ -26,6 +34,9 @@ pub struct Map {
     max_seed_cast_distance: u32,
     max_seed_number: u32,
     seed_viability: f32,
+    max_graz: u32,
+    max_plant: u32,
+    max_pred: u32,
     //grazer
     init_grazer_count: u32,
     grazer_energy_input: u32,
@@ -53,21 +64,34 @@ pub struct Map {
 
 #[wasm_bindgen]
 impl Map {
-    pub fn new() -> Map {
-        Map::default()
+    pub fn new() -> Map 
+    {
+        Map{
+            max_graz: 0,
+            max_plant: 0,
+            max_pred: 0,
+            ..Map::default()
+        }
+
+
     }
     fn get_current_tick(&self) -> u64 {
         self.current_tick
     }
     pub fn tick(&mut self) {
+        //log("in map.tick");
+        log(format!("current tick is {}", self.current_tick).as_str());
         let mut new_grazers = Vec::new();
         // let mut new_predators = Vec::new();
         let mut new_plants = Vec::new();
         let mut plants_to_remove = Vec::new();
-        let max_size = self.get_max_size() as f32; // Calculate it once
         let maintain_speed_ticks = (self.grazer_maintain_speed * 60.0) as i32;
+        let p_maintain_speed = (self.predator_maintain_speed * 60.0) as i32;
+        let mut preds = vec![];
+        let mut ded_preds = vec![];
+        let mut ded_grazs = vec![];
 
-        for (index, plant) in self.plants.iter().enumerate() {
+        for plant in self.plants.iter() {
             let mut seeds = plant.tick(
                 self.get_width(),
                 self.get_height(),
@@ -79,55 +103,139 @@ impl Map {
                 self.get_current_tick(),
             );
             new_plants.append(&mut seeds);
-
-
         }
-
+        //log("ticked all plants");
         for grazer in self.grazers.iter() {
             //new_grazers.append
-            let mut weird = grazer.clone().tick(self.get_grazer_energy_input(),
-            self.get_grazer_energy_output(),
-            self.get_grazer_energy_to_reproduce(),
-            self.get_grazer_max_speed(),
-            maintain_speed_ticks,
-            self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 5.0),
-            self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 150.0),
-            self.get_predators_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 25.0),
-            self.get_rocks_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 50.0),
-            self.get_current_tick()
+
+            //log(format!("current pos {}, {}", grazer.mover.entity.x, grazer.mover.entity.y).as_str());
+
+            let mut weird = grazer.clone().tick(
+                self.get_grazer_energy_input(),
+                self.get_grazer_energy_output(),
+                self.get_grazer_energy_to_reproduce(),
+                self.get_grazer_max_speed() / 60.0,
+                maintain_speed_ticks,
+                self.get_plants_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 1.0),
+                self.get_visible_plants_within_vicinity(
+                    grazer.mover.entity.x,
+                    grazer.mover.entity.y,
+                    150.0,
+                ),
+                self.get_visible_predators_within_vicinity(
+                    grazer.mover.entity.x,
+                    grazer.mover.entity.y,
+                    25.0,
+                ),
+                self.get_rocks_within_vicinity(grazer.mover.entity.x, grazer.mover.entity.y, 150.0),
+                self.get_current_tick(),
+                self.width,
+                self.height,
             );
-             new_grazers.append(&mut weird.0); 
+
+            new_grazers.append(&mut weird.0);
             plants_to_remove.append(&mut weird.1);
         }
-        let mut preds = vec![];
+        //log("ticked all grazers");
 
         for pred in self.predators.iter() {
-            preds.append(&mut pred.clone().tick(
+            let mut weird = pred.clone().tick(
                 self.predator_energy_to_reproduce,
                 self.current_tick,
                 self.predator_energy_output,
                 self.get_predators_within_vicinity(
                     pred.mover.get_entity().get_x(),
                     pred.mover.get_entity().get_y(),
-                    5.0,
+                    150.0,
+                ),
+                self.get_visible_predators_within_vicinity(
+                    pred.mover.get_entity().get_x(),
+                    pred.mover.get_entity().get_y(),
+                    150.0,
+                ),
+                self.get_rocks_within_vicinity(pred.mover.entity.x, pred.mover.entity.y, 150.0),
+                self.get_visible_grazers_within_vicinity(
+                    pred.mover.entity.x,
+                    pred.mover.entity.y,
+                    150.0,
                 ),
                 self.predator_max_offspring,
                 self.predator_offspring_energy,
                 self.get_predator_gestation(),
                 self.get_predator_by_id(pred.family.get(0)),
-            ));
+                self.max_speed_hod / 60.0,
+                self.max_speed_hed / 60.0,
+                self.max_speed_hor / 60.0,
+                p_maintain_speed,
+                self.width,
+                self.height,
+            );
+            preds.append(&mut weird.0);
+            ded_preds.append(&mut weird.1);
+            ded_grazs.append(&mut weird.2);
         }
+        //log("ticked all predators");
+
+        //set all alive creatures
         self.predators = preds;
         self.grazers = new_grazers;
-
-        self.current_tick += 1;
         self.plants = new_plants;
-        
+
+        //increment tick counter
+        self.current_tick += 1;
+
         // remove dead
         self.plants.retain(|obj| {
-            !plants_to_remove.iter().any(|r| r.entity.id == obj.entity.id) // Change the condition based on your specific criteria
+            !plants_to_remove
+                .iter()
+                .any(|r| r.entity.id == obj.entity.id) // Change the condition based on your specific criteria
+        });
+        self.grazers.retain(|obj| {
+            !ded_grazs
+                .iter()
+                .any(|r| r.get_entity().id == obj.get_entity().id) // Change the condition based on your specific criteria
+        });
+        self.predators.retain(|obj| {
+            !ded_preds
+                .iter()
+                .any(|r| r.get_entity().id == obj.get_entity().id) // Change the condition based on your specific criteria
         });
 
+        //set new maxs
+        if self.plants.len() as u32 > self.max_plant{
+            self.max_plant = self.plants.len() as u32;
+        }
+        if self.grazers.len() as u32 > self.max_graz{
+            self.max_graz = self.grazers.len() as u32;
+        }
+        if self.predators.len() as u32 > self.max_pred{
+            self.max_pred = self.predators.len() as u32;
+        }
+    }
+
+    // returns true if the sight line is not blocked
+    fn check_sight_line(&self, t1x: f32, t1y: f32, t2x: f32, t2y: f32) -> bool {
+        let midpoint = ((t1x + t2x) / 2.0, (t1y + t2y) / 2.0);
+        let dist = get_length(t2x - t1x, t2y - t1y);
+        let possible_obstructions =
+            self.get_rocks_within_vicinity(midpoint.0, midpoint.1, dist / 2.0);
+        let true_obstructions = possible_obstructions
+            .iter()
+            .filter(|rock| {
+                check_single_sight_line(
+                    (rock.entity.get_x(), rock.entity.get_y()),
+                    (t1x, t1y),
+                    (t2x, t2y),
+                    rock.get_diameter() as f32 / 2.0,
+                )
+            })
+            .collect::<Vec<&Rock>>();
+
+        //log(format!("length of plants{}", self.plants.len()).as_str());
+        //log(format!("length of grazers{}", self.grazers.len()).as_str());
+        //log(format!("length of predators{}", self.predators.len()).as_str());
+
+        true_obstructions.is_empty()
     }
 
     pub fn get_width(&self) -> u32 {
@@ -167,7 +275,6 @@ impl Map {
     }
 
     fn get_plants_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Plant> {
-        
         self.plants
             .iter()
             .filter(|plant| get_length(plant.entity.x - x, plant.entity.y - y) < max_dist)
@@ -176,18 +283,19 @@ impl Map {
             .collect::<Vec<Plant>>()
     }
 
-    fn get_grazers_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Grazer> {
-        
-        self.grazers
+    fn get_visible_plants_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Plant> {
+        self.plants
             .iter()
-            .filter(|graz| get_length(graz.mover.entity.x - x, graz.mover.entity.y - y) < max_dist)
+            .filter(|plant| get_length(plant.entity.x - x, plant.entity.y - y) < max_dist)
+            .filter(|seer| {
+                self.check_sight_line(seer.get_entity().get_x(), seer.get_entity().get_y(), x, y)
+            })
             //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
-            .map(|graz: &Grazer| graz.clone())
-            .collect::<Vec<Grazer>>()
+            .map(|plant: &Plant| plant.clone())
+            .collect::<Vec<Plant>>()
     }
 
     fn get_rocks_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Rock> {
-        
         self.rocks
             .iter()
             .filter(|rock| get_length(rock.entity.x - x, rock.entity.y - y) < max_dist)
@@ -196,10 +304,60 @@ impl Map {
             .collect::<Vec<Rock>>()
     }
 
+    fn get_visible_rocks_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Rock> {
+        self.rocks
+            .iter()
+            .filter(|rock| get_length(rock.entity.x - x, rock.entity.y - y) < max_dist)
+            .filter(|seer| {
+                self.check_sight_line(seer.get_entity().get_x(), seer.get_entity().get_y(), x, y)
+            })
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|rock: &Rock| rock.clone())
+            .collect::<Vec<Rock>>()
+    }
+
+    fn get_grazers_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Grazer> {
+        self.grazers
+            .iter()
+            .filter(|graz| get_length(graz.mover.entity.x - x, graz.mover.entity.y - y) < max_dist)
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|graz: &Grazer| graz.clone())
+            .collect::<Vec<Grazer>>()
+    }
+
+    fn get_visible_grazers_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Grazer> {
+        self.grazers
+            .iter()
+            .filter(|graz| get_length(graz.mover.entity.x - x, graz.mover.entity.y - y) < max_dist)
+            .filter(|seer| {
+                self.check_sight_line(seer.get_entity().get_x(), seer.get_entity().get_y(), x, y)
+            })
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|graz: &Grazer| graz.clone())
+            .collect::<Vec<Grazer>>()
+    }
+
     fn get_predators_within_vicinity(&self, x: f32, y: f32, max_dist: f32) -> Vec<Predator> {
         self.predators
             .iter()
             .filter(|pred| get_length(pred.mover.entity.x - x, pred.mover.entity.y - y) < max_dist)
+            //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
+            .map(|pred: &Predator| pred.clone())
+            .collect::<Vec<Predator>>()
+    }
+
+    fn get_visible_predators_within_vicinity(
+        &self,
+        x: f32,
+        y: f32,
+        max_dist: f32,
+    ) -> Vec<Predator> {
+        self.predators
+            .iter()
+            .filter(|pred| get_length(pred.mover.entity.x - x, pred.mover.entity.y - y) < max_dist)
+            .filter(|seer| {
+                self.check_sight_line(seer.get_entity().get_x(), seer.get_entity().get_y(), x, y)
+            })
             //.inspect(|pred| log(format!("{}", pred.mover.entity.x - x).as_str()))
             .map(|pred: &Predator| pred.clone())
             .collect::<Vec<Predator>>()
@@ -389,6 +547,101 @@ impl Map {
     pub fn set_predator_max_offspring(&mut self, new_predator_max_offspring: u32) {
         self.predator_max_offspring = new_predator_max_offspring;
     }
+    pub fn generate_report_file_name(&self) -> String {
+        //generate the name of the report file with the time
+        let dt = Local::now();
+        let mut file_name: String = "SimulationReport-".to_owned();
+
+        file_name = file_name + &dt.hour().to_string();
+        file_name.push_str("-");
+        file_name = file_name + (&dt.minute().to_string());
+        file_name.push_str("-");
+        file_name = file_name + (&dt.second().to_string());
+        file_name = file_name + ".txt";
+        return String::from(file_name);
+    }
+    pub fn generate_report(&self) -> String {
+        //the string with all the data to be returned
+        let mut data: String = "".to_string();
+
+        data = data + format!("SIMULATION DATA\n\n").as_str();
+
+        //Print plant data
+        data = data + format!("Total Plants: {} \n\n", self.plants.len()).as_str();
+
+        for plant in self.plants.iter() {
+            data = data + format!("Plant\n").as_str();
+            data = data + format!("ID: {}\n", plant.entity.id).as_str();
+            data = data + format!("X Position: {}\n", plant.entity.x).as_str();
+            data = data + format!("Y Position: {}\n", plant.entity.y).as_str();
+            data = data + format!("Generation: {}\n", plant.entity.generation).as_str();
+            //data.= (format!("Energy: ").as_bytes());
+            data = data + format!("Diameter: {}\n", plant.diameter).as_str();
+            data = data + format!("\n").as_str();
+        }
+        data = data + (format!("\n").as_str());
+
+        //Print grazer data
+        data = data + (format!("Total Grazers: {}\n\n", self.grazers.len()).as_str());
+
+        for grazer in self.grazers.iter() {
+            data = data + format!("Grazer\n").as_str();
+            data = data + format!("ID: {}\n", grazer.mover.entity.id).as_str();
+            data = data + format!("X Position: {}\n", grazer.mover.entity.x).as_str();
+            data = data + format!("Y Position: {}\n", grazer.mover.entity.y).as_str();
+            data = data + format!("Generation: {}\n", grazer.mover.entity.generation).as_str();
+            data = data + format!("State: {}\n", grazer.mover.state).as_str(); //this may change on our enum plan
+            data = data + format!("X Velocity: {}\n", grazer.mover.velocity_x).as_str();
+            data = data + format!("Y Velocity: {}\n", grazer.mover.velocity_y).as_str();
+            data = data + format!("Orentation: {}\n", grazer.mover.orientation).as_str();
+            data = data + format!("Target X Position: {}\n", grazer.mover.target_x).as_str();
+            data = data + format!("Target Y Position: {}\n", grazer.mover.target_y).as_str();
+            data = data + format!("Du: {}\n", grazer.mover.du).as_str();
+            data = data + format!("Energy: {}\n", grazer.mover.energy).as_str();
+            data = data + format!("\n").as_str();
+        }
+        data = data + format!("\n").as_str();
+
+        //Print Predators
+        data = data + format!("Total Predators: {}\n\n", self.predators.len()).as_str();
+
+        for predator in self.predators.iter() {
+            data = data + (format!("Predator\n").as_str());
+            data = data + (format!("ID: {}\n", predator.mover.entity.id).as_str());
+            data = data + (format!("X Position: {}\n", predator.mover.entity.x).as_str());
+            data = data + (format!("Y Position: {}\n", predator.mover.entity.y).as_str());
+            data = data + (format!("Generation: {}\n", predator.mover.entity.generation).as_str());
+            data = data + (format!("State: {}\n", predator.mover.state).as_str()); //this may change on our enum plan
+            data = data + (format!("X Velocity: {}\n", predator.mover.velocity_x).as_str());
+            data = data + (format!("Y Velocity: {}\n", predator.mover.velocity_y).as_str());
+            data = data + (format!("Orentation: {}\n", predator.mover.orientation).as_str());
+            data = data + (format!("Target X Position: {}\n", predator.mover.target_x).as_str());
+            data = data + (format!("Target Y Position: {}\n", predator.mover.target_y).as_str());
+            data = data + (format!("Du: {}\n", predator.mover.du).as_str());
+            data = data + (format!("Energy: {}\n", predator.mover.energy).as_str());
+            data = data + (format!("Genes: {}\n", predator.get_gen_seq()).as_str());
+            data = data + (format!("Is Pregnant: {}\n", predator.is_pregnant).as_str());
+            data = data + (format!("Time as Friends: {}\n", predator.time_family).as_str());
+            //print kids
+            for child in predator.family.iter() {
+                data = data + (format!("Friendly ID: {}\n", child).as_str());
+            }
+            data = data + (format!("\n").as_str());
+        }
+        data = data + (format!("END REPORT\n").as_str());
+        //file auto closes as it leaves scope or this function
+        return data;
+    }
+    pub fn score(&self) -> u32 {
+        //current tick + ((max plant * 2) + (max grazer * 1) + (max predator * 3) * (2 if extinct is grazer, else 1)
+        let mut score = self.current_tick as u32;
+        score += (self.max_plant * 2) + (self.max_graz * 1) + (self.max_pred * 3);
+        if self.grazers.len() == 0 {
+            score = score * 2;
+        }
+
+        return score;
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -482,31 +735,35 @@ impl Mover {
             ..Default::default()
         }
     }
-    fn tick(&mut self, max_speed: f32, energy: u32, target: Entity){
-
-        
+    fn tick(
+        &mut self,
+        max_speed: f32,
+        energy: u32,
+        target: Entity,
+        rocks: Vec<Rock>,
+        width: u32,
+        height: u32,
+    ) {
+        if self.energy >= energy {
             // move here
-            if self.state == 0{
-                //stay
-                //return self back
-                // dont need to set anything to zero as will return a new copy of mover up to
-            }
-            else if self.state == 1 {
-                Mover::arrive(self, target, 1 as f32);
-            }
-            else if self.state == 2 {
-                Mover::wander(self, 1 as f32);
-            }
-            else if self.state == 3 {
-                Mover::flee(self, target, 1 as f32);
+
+            if self.state == 1 {
+                Mover::arrive(self, target, rocks, 1 as f32, width, height);
+            } else if self.state == 2 {
+                Mover::wander(self, 1 as f32, rocks, width, height);
+            } else if self.state == 3 {
+                Mover::flee(self, target, 1 as f32, rocks, width, height);
             }
 
-            self.du += f32::sqrt(self.entity.x.powi(2) + self.entity.y.powi(2));
+            self.du += f32::sqrt(self.velocity_x.powi(2) + self.velocity_y.powi(2));
             if self.du > 5.0 {
                 self.du -= 5.0;
                 self.energy -= energy;
             }
-    
+        } else if self.energy < energy && self.energy != 0 {
+            self.energy -= 1;
+        }
+
         // a grazer can only move 10 du when energy is below 25
         //  add a death here for 0 energy
     }
@@ -568,6 +825,60 @@ impl Mover {
         return (x, z); // -0.709
     }
 
+    fn evade(
+        mut char: &mut Mover,
+        rocks: Vec<Rock>,
+        delta_time: f32,
+        width: u32,
+        height: u32,
+    ) -> &Mover {
+        let mut min_dist = 150.0;
+        let mut closest_rock = Rock::default();
+        for rock in rocks.iter() {
+            let distance = ((rock.entity.x - char.entity.x).powi(2)
+                + (rock.entity.y - char.entity.y).powi(2))
+            .sqrt();
+            if distance < min_dist {
+                min_dist = distance;
+                closest_rock = rock.clone();
+            }
+        }
+
+        let mut new_target_x = char.entity.x - closest_rock.entity.x;
+        let mut new_target_y = char.entity.y - closest_rock.entity.y;
+
+        (new_target_x, new_target_y) = Mover::normalize(new_target_x, new_target_y);
+
+        if new_target_x < 0.0 {
+            new_target_x = closest_rock.entity.x
+                + new_target_x
+                + ((closest_rock.diameter as f32 / 2.0) * -1.0);
+            new_target_y =
+                closest_rock.entity.y + new_target_y + (closest_rock.diameter as f32 / 2.0);
+        } else if new_target_y < 0.0 {
+            new_target_y = closest_rock.entity.y
+                + new_target_y
+                + ((closest_rock.diameter as f32 / 2.0) * -1.0);
+            new_target_x =
+                closest_rock.entity.x + new_target_x + (closest_rock.diameter as f32 / 2.0);
+        } else if new_target_y < 0.0 && new_target_x < 0.0 {
+            new_target_y = closest_rock.entity.y
+                + new_target_y
+                + ((closest_rock.diameter as f32 / 2.0) * -1.0);
+            new_target_x = closest_rock.entity.x
+                + new_target_x
+                + ((closest_rock.diameter as f32 / 2.0) * -1.0);
+        } else {
+            new_target_x =
+                closest_rock.entity.x + new_target_x + (closest_rock.diameter as f32 / 2.0);
+            new_target_y =
+                closest_rock.entity.y + new_target_y + (closest_rock.diameter as f32 / 2.0);
+        }
+
+        let temp = Entity::new(new_target_x, new_target_y);
+        return Mover::arrive(char, temp, rocks, delta_time, width, height);
+    }
+
     fn seek(mut char: &mut Mover, target: Entity, delta_time: f32) -> &Mover {
         let mut result_x = 0.0;
         let mut result_y = 0.0;
@@ -582,13 +893,27 @@ impl Mover {
         return Mover::update(result_x, result_y, char, delta_time);
     }
 
-    fn flee(mut char: &mut Mover, target: Entity, delta_time: f32) -> &Mover {
+    fn flee(
+        mut char: &mut Mover,
+        target: Entity,
+        delta_time: f32,
+        rocks: Vec<Rock>,
+        width: u32,
+        height: u32,
+    ) -> &Mover {
+        let dx = target.x - char.entity.x;
+        let dy = target.y - char.entity.y;
+        char.orientation = dy.atan2(dx);
+
         let mut result_x = 0.0;
         let mut result_y = 0.0;
 
         result_x = char.entity.x - target.x;
         result_y = char.entity.y - target.y;
 
+        log("in flee");
+            (result_x, result_y) = Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
+    
         (result_x, result_y) = Mover::normalize(result_x, result_y);
         result_x = result_x * char.max_speed;
         result_y = result_y * char.max_speed;
@@ -596,11 +921,15 @@ impl Mover {
         return Mover::update(result_x, result_y, char, delta_time);
     }
 
-    fn arrive(mut char: &mut Mover, target: Entity, delta_time: f32) -> &Mover {
-        
-        let dx = target.x - char.entity.x;
-        let dy = target.y - char.entity.y;
-        char.orientation = dy.atan2(dx);
+    fn arrive(
+        mut char: &mut Mover,
+        target: Entity,
+        rocks: Vec<Rock>,
+        delta_time: f32,
+        width: u32,
+        height: u32,
+    ) -> &Mover {
+
 
         let mut result_x = 0.0;
         let mut result_y = 0.0;
@@ -616,16 +945,15 @@ impl Mover {
         //This may need to be tested and fixed later.
         {
             return char;
-        }
-
-        else if distance > char.max_speed + 5.0
+        } else if distance > char.max_speed / 2.0
         //This will also need to be tested. // max sped
         {
-            log("arrive at max");
+            //log("arrive at max");
             goalSpeed = char.max_speed; // 20
+        } else {
+            //slow
+            //log("arrive at slow");
 
-        } else { //slow
-            log("arrive at slow");
             goalSpeed = char.max_speed * distance / (char.max_speed + 5.0) //The 1.5 is the slow radius, this needs to be tested.
         }
 
@@ -641,6 +969,17 @@ impl Mover {
         result_x = goal_velocity_x;
         result_y = goal_velocity_y;
 
+        log("in arrive");
+            (result_x, result_y) = Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
+
+            let tester = get_length(result_x, result_y);
+            if tester > char.max_speed {
+                (result_x, result_y) = Mover::normalize(result_x, result_y);
+                result_x = result_x * char.max_speed;
+                result_y = result_y * char.max_speed;
+            }
+        
+
         /* These 2 lines might not be necessary, maybe need testing? maybe not?
         result_x = result_x / char.ttt;
         result_y = result_y / char.ttt;
@@ -649,20 +988,125 @@ impl Mover {
         return Mover::update(result_x, result_y, char, delta_time);
     }
 
-    fn wander(mut char: &mut Mover, delta_time: f32) -> &Mover {
-        let max_rotation = 15.0;
+    fn wander(
+        mut char: &mut Mover,
+        delta_time: f32,
+        rocks: Vec<Rock>,
+        width: u32,
+        height: u32,
+    ) -> &Mover {
+        let max_rotation = 0.25;
         let mut result_x = 0.0;
         let mut result_y = 0.0;
         let mut result_orien = 0.0;
         let num = rand::thread_rng().gen_range(-1.0..1.0);
 
-       // log("max speed is ", char.max_speed);
+        
+        //log(format!("WANDER max_speed {}, orientation {}, num {}", char.max_speed, char.orientation, num).as_str());
 
-        result_x = char.max_speed * char.orientation.sin() * 0.75;
-        result_y = char.max_speed * char.orientation.cos() * 0.75;
+        result_y = char.max_speed * char.orientation.sin();
+        result_x = char.max_speed * char.orientation.cos();
         result_orien = num * max_rotation;
 
+        //log(format!("WANDER result x {}, result y {}, delta time{}", result_x, result_y, delta_time).as_str());
+        log("in wander");
+        (result_x, result_y) = Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
+  
+
         return Mover::kinematicupdate(result_x, result_y, result_orien, char, delta_time);
+    }
+
+    fn avoid(
+        mut result_x: f32,
+        mut result_y: f32,
+        char: &mut Mover,
+        rocks: Vec<Rock>,
+        delta_time: f32,
+        width: u32,
+        height: u32,
+    ) -> (f32, f32) {
+        let mut interim_dis_x = 0.0 as f32;
+        let mut interim_dis_y = 0.0 as f32;
+
+        let mut min_dist = 150 as f32;
+        let mut closest_rock = &Rock::default();
+        let mut radius = 0.0;
+        log("in avoid");
+        if !rocks.is_empty() {
+            log("in rocks is not empty in avoid");
+            for rock in rocks.iter() {
+                let distance = ((rock.entity.x - char.entity.x).powi(2)
+                    + (rock.entity.y - char.entity.y).powi(2))
+                .sqrt();
+                if distance < min_dist {
+                    min_dist = distance;
+                    closest_rock = rock;
+                    radius = rock.diameter as f32 / 2.0;
+                }
+            }
+            
+        if min_dist <= radius + 8.0 && min_dist > radius + 2.0 {
+            //log("close but not too close");
+            interim_dis_x = char.entity.x - closest_rock.entity.x;
+            interim_dis_y = char.entity.y - closest_rock.entity.y;
+
+            let test1 = result_x * 1.2;
+            let test2 = result_y * 1.2;
+
+            let test3 = interim_dis_x * 0.85;
+            let test4 = interim_dis_y * 0.85;
+
+            result_x = test1 + test3;
+            result_y = test2 + test4;
+
+            (result_x, result_y) = Mover::normalize(result_x, result_y);
+            result_x = result_x * char.max_speed;
+            result_y = result_y * char.max_speed;
+
+            return (result_x, result_y);
+        } else if min_dist <= radius + 2.0 {
+            //log("way too close");
+            interim_dis_x = char.entity.x - closest_rock.entity.x;
+            interim_dis_y = char.entity.y - closest_rock.entity.y;
+
+            let test1 = result_x * 0.85;
+            let test2 = result_y * 0.85;
+
+            let test3 = interim_dis_x * 2.0;
+            let test4 = interim_dis_y * 2.0;
+
+            result_x = test1 + test3;
+            result_y = test2 + test4;
+
+            (result_x, result_y) = Mover::normalize(result_x, result_y);
+            result_x = result_x * char.max_speed;
+            result_y = result_y * char.max_speed;
+
+            return (result_x, result_y);
+        }
+        }
+
+
+
+        if (char.entity.x + char.velocity_x) >= width as f32
+            || (char.entity.x + char.velocity_x) <= 0.0
+        {
+            //log("close to wall side");
+            // the result line might not be necessary
+            char.velocity_x = char.velocity_x * -1.0;
+            result_x = result_x * -1.0;
+        }
+
+        if (char.entity.y + char.velocity_y) >= height as f32
+            || (char.entity.y + char.velocity_y) <= 0.0
+        {
+            //log("close to wall top");
+            // the result line might not be necessary
+            char.velocity_y = char.velocity_y * -1.0;
+            result_y = result_y * -1.0;
+        }
+
+        return (result_x, result_y);
     }
 
     fn update(result_x: f32, result_y: f32, char: &mut Mover, delta_time: f32) -> &Mover {
@@ -674,11 +1118,13 @@ impl Mover {
             char.velocity_x = velocity_x * char.max_speed; // -14
             char.velocity_y = velocity_y * char.max_speed; // -14
         }
-        
-        char.entity.x += char.velocity_x * delta_time; 
+
+        char.entity.x += char.velocity_x * delta_time;
         char.entity.y += char.velocity_y * delta_time;
 
-
+        let dx = result_x;
+        let dy = result_y;
+        char.orientation = dy.atan2(dx);
 
         return char;
     }
@@ -690,9 +1136,10 @@ impl Mover {
         char: &mut Mover,
         delta_time: f32,
     ) -> &Mover {
+        //log(format!("result x {}, result y {}, delta time{}", result_x, result_y, delta_time).as_str());
         char.entity.x += char.velocity_x * delta_time;
         char.entity.y += char.velocity_y * delta_time;
-        char.orientation += char.orientation * delta_time;
+        //char.orientation += char.orientation * delta_time;
 
         char.velocity_x += result_x * delta_time;
         char.velocity_y += result_y * delta_time;
@@ -721,7 +1168,7 @@ impl Default for Mover {
             target_y: 0.0,
             energy: 0,
             du: 0.0,
-            max_speed: 10.0
+            max_speed: 15.0,
         }
     }
 }
@@ -771,13 +1218,23 @@ impl Rock {
     }
 }
 
+impl Default for Rock {
+    fn default() -> Self {
+        Rock {
+            entity: Entity::default(),
+            diameter: 0,
+            height: 0,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Default)]
 #[wasm_bindgen]
 pub struct Grazer {
     mover: Mover,
     ticks_in_loc: i32, //minutes in cur location without moving max is 10 once at 10 need to move
     ticks_at_speed: i32,
-    is_chased: bool,
+    speed_cooldown: i32,
 }
 
 #[wasm_bindgen]
@@ -796,99 +1253,125 @@ impl Grazer {
             ..Default::default()
         }
     }
-    fn tick( &mut self, 
+    fn tick(
+        &mut self,
         energy_in: u32,
         energy_out: u32,
         energy_reproduce: u32,
         max_speed: f32,
         maintain_speed: i32,
-        at_plants: Vec<Plant>, //in 5du
-        plants: Vec<Plant>, //150 du
+        at_plants: Vec<Plant>,    //in 5du
+        plants: Vec<Plant>,       //150 du
         predators: Vec<Predator>, //25 du
-        rocks: Vec<Rock>, // 50 du
+        rocks: Vec<Rock>,         // 50 du
         cur_tick: u64,
+        width: u32,
+        height: u32,
     ) -> (Vec<Grazer>, Vec<Plant>) {
-        //plants and predator is a vector of creatures with distance sight is not yet implemented 
+        //plants and predator is a vector of creatures with distance sight is not yet implemented
         //to integrate sight just change the function called when tick is called in map.
         let mut new_graz = Vec::new();
         let mut ded_plants = Vec::new();
-        if self.mover.energy > 25 && self.ticks_at_speed < maintain_speed{
+        log(format!("energy {}", self.mover.energy).as_str());
+        if self.mover.energy > 1000 {
+            log(format!("energy {}", self.mover.energy).as_str());
+        }
+
+        if self.mover.energy > 25 && self.ticks_at_speed < maintain_speed {
             self.mover.max_speed = max_speed;
-        }
-        else if self.mover.energy <= 25 {
-            self.mover.max_speed = 10.0;
-        }
-        else if self.ticks_at_speed > maintain_speed{
+        } else if self.mover.energy <= 25 {
+            self.mover.max_speed = 10.0 / 60.0;
+        } else if self.ticks_at_speed > maintain_speed && self.speed_cooldown == 0 {
             self.mover.max_speed = max_speed * 0.75;
+            self.speed_cooldown += 1;
+        } else {
+            self.speed_cooldown += 1;
         }
-        if ! self.is_chased{
+        if self.speed_cooldown == 10 {
             self.ticks_at_speed = 0;
+            self.speed_cooldown = 0;
         }
-        
-        log(format!("current tick is {}", cur_tick).as_str());
+
         //first check for predators to run from
-        if !predators.is_empty(){
-            self.is_chased = true;
+        if !predators.is_empty() {
+            log("pred not emp");
+            self.ticks_in_loc = 0;
             //seek rock away from closest pred
             //set movers target
             self.mover.state = 1; //set state to arrive
-            //log(plants.len());
-            if !rocks.is_empty(){
-            let mut min_dist = 0.0 as f32;
-            let mut closest_rock = &rocks[0];
-            for rock in rocks.iter(){
-                let distance = ((rock.entity.x - self.mover.entity.x).powi(2) + (rock.entity.y - self.mover.entity.y).powi(2)).sqrt();
-                if distance < min_dist {
-                    min_dist = distance;
-                    closest_rock = rock;
+                                  //log(plants.len());
+            if !rocks.is_empty() {
+                let mut min_dist = 150 as f32;
+
+                let mut closest_rock = &rocks[0];
+                for rock in rocks.iter() {
+                    let distance = ((rock.entity.x - self.mover.entity.x).powi(2)
+                        + (rock.entity.y - self.mover.entity.y).powi(2))
+                    .sqrt();
+                    if distance < min_dist {
+                        min_dist = distance;
+                        closest_rock = rock;
                     }
                 }
-            if self.ticks_at_speed < maintain_speed {
-                self.mover.tick(max_speed, energy_out, closest_rock.entity);
-                self.ticks_at_speed += 1;
-            }
-            else if min_dist == 0.0 {
-                self.mover.tick(max_speed * 0.75, energy_out, closest_rock.entity);
-            }
-            
-            }
-            else {
-                let mut min_dist = 0.0 as f32;
+
+                if min_dist > 0.0 {
+                    self.mover.tick(
+                        max_speed,
+                        energy_out,
+                        closest_rock.entity,
+                        rocks,
+                        width,
+                        height,
+                    );
+                    self.ticks_at_speed += 1;
+                }
+            } else {
+                let mut min_dist = 150 as f32;
+
                 let mut closest_pred = &predators[0];
-                for pred in predators.iter(){
-                    let distance = ((pred.mover.entity.x - self.mover.entity.x).powi(2) + (pred.mover.entity.y - self.mover.entity.y).powi(2)).sqrt();
+                for pred in predators.iter() {
+                    let distance = ((pred.mover.entity.x - self.mover.entity.x).powi(2)
+                        + (pred.mover.entity.y - self.mover.entity.y).powi(2))
+                    .sqrt();
                     if distance < min_dist {
                         min_dist = distance;
                         closest_pred = pred;
-                        }
                     }
-                    self.mover.state = 3;
-                    self.mover.tick(max_speed * 0.75, energy_out, closest_pred.mover.entity);
-             }
-        }
-        else if self.mover.energy >= energy_reproduce {
-            
+                }
+                self.mover.state = 3;
+                self.mover.tick(
+                    max_speed,
+                    energy_out,
+                    closest_pred.mover.entity,
+                    rocks,
+                    width,
+                    height,
+                );
+                self.ticks_at_speed += 1;
+            }
+        } else if self.mover.energy >= energy_reproduce {
+            log("reproduce");
+
             new_graz.push(self.reproduce());
         }
         // here means no predators
         // check if at food for plant in 5 du
         // been at plant
-        else if !at_plants.is_empty() && self.ticks_in_loc != 0{
-            self.is_chased = false;
+        else if !at_plants.is_empty() && self.ticks_in_loc != 0 {
+            log("at plant");
+
             //now check if tick at loc is at max
             self.mover.state = 0;
             log(format!("tick in loc {}", self.ticks_in_loc).as_str());
             log(format!("energy {}", self.mover.energy).as_str());
-            if self.ticks_in_loc == 600{
-                for plant in at_plants.iter(){
+            if self.ticks_in_loc == 600 {
+                for plant in at_plants.iter() {
                     ded_plants.push(plant.clone());
                 }
-                
+
                 self.ticks_in_loc = 0;
-                //seek next plant   
-            }
-            else {
-                
+                //seek next plant
+            } else {
                 //then if not max stay
                 //gain energy on 60 increments
                 self.ticks_in_loc += 1;
@@ -896,51 +1379,72 @@ impl Grazer {
                     self.mover.energy += energy_in;
                 }
             }
-
-            
         }
         // first tick at plant
-        else if !at_plants.is_empty() && self.ticks_in_loc == 0{
-            self.is_chased = false;
+        else if !at_plants.is_empty() && self.ticks_in_loc == 0 {
+            log("first at plant");
+
             // just arrived at plant
+            self.ticks_in_loc = 0;
             self.mover.state = 0;
             self.ticks_in_loc += 1;
-            self.mover.tick(max_speed, energy_out, self.mover.entity);
-        }
+            self.mover.tick(
+                max_speed,
+                energy_out,
+                self.mover.entity,
+                rocks,
+                width,
+                height,
+            );
+        } else if at_plants.is_empty() && !plants.is_empty() {
+            log("seek plant");
 
-    
-        else if at_plants.is_empty() && !plants.is_empty(){
-            self.is_chased = false;
             //find closest plant and set arrive target
+            self.ticks_in_loc = 0;
             self.mover.state = 1;
-            let mut min_dist = 0.0 as f32;
+            let mut min_dist = 150 as f32;
             let mut closest_plant = &plants[0];
-            for plant in plants.iter(){
-                let distance = ((plant.entity.x - self.mover.entity.x).powi(2) + (plant.entity.y - self.mover.entity.y).powi(2)).sqrt();
+            for plant in plants.iter() {
+                let distance = ((plant.entity.x - self.mover.entity.x).powi(2)
+                    + (plant.entity.y - self.mover.entity.y).powi(2))
+                .sqrt();
                 if distance < min_dist {
                     min_dist = distance;
                     closest_plant = plant;
-                    }
                 }
-            self.mover.tick(max_speed, energy_out, closest_plant.entity);
-        }
-        else{
-            self.is_chased = false;
+            }
+            self.mover.tick(
+                max_speed,
+                energy_out,
+                closest_plant.entity,
+                rocks,
+                width,
+                height,
+            );
+        } else {
+            self.ticks_in_loc = 0;
             //start wandering
+            log("wander");
             self.mover.state = 2;
-            self.mover.tick(max_speed, energy_out, self.mover.entity);
+            self.mover.tick(
+                max_speed,
+                energy_out,
+                self.mover.entity,
+                rocks,
+                width,
+                height,
+            );
         }
-        
-        log(format!("energy {}", self.mover.energy).as_str());
+
+        //log(format!("energy {}", self.mover.energy).as_str());
+
         // only add grazers worthy of life
-        if self.mover.energy > 0 as u32{
+        if self.mover.energy > 0 as u32 {
             new_graz.push(self.clone());
         }
-        
-        
+
         return (new_graz, ded_plants);
         // self.mover.tick(5.0, energy);
-
     }
 
     fn get_ticks_in_loc(&self) -> i32 {
@@ -1147,6 +1651,8 @@ pub struct Predator {
     agression: Gene,
     strength: Gene,
     speed: Gene,
+    ticks_at_speed: i32,
+    cooldown_speed: i32,
 }
 
 #[wasm_bindgen]
@@ -1170,13 +1676,30 @@ impl Predator {
         energy_to_reproduce: u32,
         cur_tick: u64,
         energy: u32,
+        mates: Vec<Predator>,
         preds: Vec<Predator>,
+        rocks: Vec<Rock>,
+        grazers: Vec<Grazer>,
         max_offspring: u32,
         offspring_energy: u32,
         gestation: u64,
         partner: Option<&Predator>,
-    ) -> Vec<Predator> {
+        max_speed_hod: f32,
+        max_speed_hed: f32,
+        max_speed_hor: f32,
+        predator_maintain_speed: i32,
+        width: u32,
+        height: u32,
+    ) -> (Vec<Predator>, Vec<Predator>, Vec<Grazer>) {
         let mut ret = vec![];
+        let mut max_speed = 0.0;
+        let mut ded_grazs = Vec::new();
+        let mut ded_preds = Vec::new();
+        let mut predators = preds.clone();
+        predators.retain(|obj| self.get_entity().get_id() != obj.get_entity().get_id());
+        predators.retain(|pred| !self.family.contains(&pred.get_entity().get_id()));
+        predators.retain(|pred| !pred.family.contains(&self.get_entity().get_id()));
+        //(|pred| pred.get_entity().get_id() != self.get_entity().get_id());
         // if energy and not pregnant
         // has a mate
         // mate
@@ -1188,20 +1711,52 @@ impl Predator {
 
         // need to filter for avoid list
 
-        let pred = preds
-            .iter()
-            .filter(|p| p.willing_to_mate(energy_to_reproduce))
-            .filter(|p| p.get_entity().get_id() != self.get_entity().get_id())
-            //.inspect(|pred| log(pred.get_entity().get_id().to_string().as_str()))
-            .next();
-
-        if self.willing_to_mate(energy_to_reproduce) {
-            // if vaible candidate is found
-            if let Some(pred) = pred {
-                self.mate(&mut pred.clone(), cur_tick, gestation);
-                log("viable mate found");
+        // if can mate seek mate
+        // else if seek food (within check about genetcs and type of prey)
+        // with in this check if at prey then using genetcs calulate chance fo catch and kill and gain energy
+        // else wander
+        
+        if self.mover.max_speed == 15.0 {
+            match self.speed {
+                Gene::HomoDominant => {
+                    self.mover.max_speed = max_speed_hod;
+                }
+                Gene::Hetero => {
+                    self.mover.max_speed = max_speed_hed;
+                }
+                Gene::HomoRecessive => {
+                    self.mover.max_speed = max_speed_hor;
+                }
             }
-        } else if self.is_pregnant {
+        }
+
+        if self.ticks_at_speed > predator_maintain_speed {
+            if self.ticks_at_speed % 15 == 0 {
+                self.mover.max_speed = self.mover.max_speed - (1.0 / 60.0);
+            }
+            if self.mover.max_speed <= 0.0 {
+                self.cooldown_speed += 1;
+            }
+        }
+        if self.cooldown_speed == 10 {
+            self.ticks_at_speed = 0;
+            self.cooldown_speed = 0;
+            match self.speed {
+                Gene::HomoDominant => {
+                    self.mover.max_speed = max_speed_hod;
+                }
+                Gene::Hetero => {
+                    self.mover.max_speed = max_speed_hed;
+                }
+                Gene::HomoRecessive => {
+                    self.mover.max_speed = max_speed_hor;
+                }
+            }
+        }
+
+
+        log(format!("max speed is {}", self.mover.max_speed ).as_str());
+        if self.is_pregnant {
             if self.get_ticks_til_birth() < cur_tick {
                 if let Some(partner) = partner {
                     ret.append(&mut self.birth(
@@ -1214,34 +1769,522 @@ impl Predator {
                     ));
                 }
             }
+        } 
+        if self.willing_to_mate(energy_to_reproduce) && !self.is_pregnant{
+            // if vaible candidate is found
+            log("trying to find mate");
+            let pred = mates
+                .iter()
+                .filter(|p| p.willing_to_mate(energy_to_reproduce))
+                .filter(|p| p.get_entity().get_id() != self.get_entity().get_id())
+                //.inspect(|pred| log(pred.get_entity().get_id().to_string().as_str()))
+                .next();
+
+            if let Some(pred) = pred {
+                //log("in the if");
+                let distance = get_length(
+                    self.get_entity().x - pred.get_entity().x,
+                    self.get_entity().y - pred.get_entity().y,
+                );
+                if distance < 5.0 {
+                    //log("mating");
+                    self.mate(&mut pred.clone(), cur_tick, gestation);
+                } else {
+
+                    //log("seeking");
+                    self.mover.state = 1;
+                    self.mover
+                        .tick(max_speed, energy, pred.mover.entity, rocks, width, height);
+                }
+            }
+        }
+        else if !predators.is_empty() {
+            self.ticks_at_speed += 1;
+            //log("predators not empty");
+            // if preds not empty
+            //check if at a valid prey before seeking
+            //AA seek closest prey source wether pred or graz
+            //Aa seek pred only IF graz.is_empty()
+            //aa runaway from pred unless mating
+            // push dead preds to ded_preds
+            match self.agression {
+                Gene::HomoDominant => {
+                    let mut p_min_dist = 150 as f32;
+                    let mut closest_pred: Predator = Predator::default();
+                    for pred in predators
+                        .iter()
+                        
+                    {
+                        let distance = ((pred.mover.entity.x - self.mover.entity.x).powi(2)
+                            + (pred.mover.entity.y - self.mover.entity.y).powi(2))
+                        .sqrt();
+                        if distance < p_min_dist {
+                            p_min_dist = distance;
+                            closest_pred = pred.clone();
+                        }
+                    }
+                    if !grazers.is_empty() {
+                        let mut g_min_dist = 150 as f32;
+                        let mut closest_graz = Grazer::default();
+                        for graz in grazers.iter() {
+                            let distance = ((graz.mover.entity.x - self.mover.entity.x).powi(2)
+                                + (graz.mover.entity.y - self.mover.entity.y).powi(2))
+                            .sqrt();
+                            if distance < g_min_dist {
+                                g_min_dist = distance;
+                                closest_graz = graz.clone();
+                            }
+                        }
+                        //if graz closer go for graz
+                        if g_min_dist < p_min_dist {
+                            if g_min_dist <= 5.0 {
+                                //hunt math
+                                let hunt_chance: u8 = rand::thread_rng().gen_range(0..100);
+                                match self.strength {
+                                    Gene::HomoDominant => {
+                                        if hunt_chance <= 95 as u8 {
+                                            ded_grazs.push(closest_graz);
+                                            self.mover.energy +=
+                                                (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                                        }
+                                    }
+                                    Gene::Hetero => {
+                                        if hunt_chance <= 75 as u8 {
+                                            //kill grazer gain energy
+                                            ded_grazs.push(closest_graz);
+                                            self.mover.energy +=
+                                                (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                                        }
+                                    }
+                                    Gene::HomoRecessive => {
+                                        if hunt_chance <= 50 as u8 {
+                                            //kill grazer gain energy
+                                            ded_grazs.push(closest_graz);
+                                            self.mover.energy +=
+                                                (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                                        }
+                                    }
+                                }
+                            } else {
+                                self.mover.state = 1;
+                                self.mover.tick(
+                                    max_speed,
+                                    energy,
+                                    closest_graz.mover.entity,
+                                    rocks,
+                                    width,
+                                    height,
+                                );
+                            }
+                        }
+                    } else {
+                        // hunt the closest pred
+                        if p_min_dist <= 5.0 {
+                            //hunt math //need to update for pred v pred
+                            let hunt_chance: u8 = rand::thread_rng().gen_range(0..100);
+                            match self.strength {
+                                Gene::HomoDominant => match closest_pred.strength {
+                                    Gene::HomoDominant => {
+                                        if hunt_chance <= 50 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        } else {
+                                            self.add_family(closest_pred.get_entity().get_id());
+                                            closest_pred.add_family(self.get_entity().get_id());
+                                        }
+                                    }
+                                    Gene::Hetero => {
+                                        if hunt_chance <= 75 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        } else {
+                                            self.add_family(closest_pred.get_entity().get_id());
+                                            closest_pred.add_family(self.get_entity().get_id());
+                                        }
+                                    }
+                                    Gene::HomoRecessive => {
+                                        if hunt_chance <= 95 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        } else {
+                                            self.add_family(closest_pred.get_entity().get_id());
+                                            closest_pred.add_family(self.get_entity().get_id());
+                                        }
+                                    }
+                                },
+                                Gene::Hetero => match closest_pred.strength {
+                                    Gene::HomoDominant => {
+                                        if hunt_chance <= 25 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        } else {
+                                            self.add_family(closest_pred.get_entity().get_id());
+                                            closest_pred.add_family(self.get_entity().get_id());
+                                        }
+                                    }
+                                    Gene::Hetero => {
+                                        if hunt_chance <= 50 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        } else {
+                                            self.add_family(closest_pred.get_entity().get_id());
+                                            closest_pred.add_family(self.get_entity().get_id());
+                                        }
+                                    }
+                                    Gene::HomoRecessive => {
+                                        if hunt_chance <= 75 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        } else {
+                                            self.add_family(closest_pred.get_entity().get_id());
+                                            closest_pred.add_family(self.get_entity().get_id());
+                                        }
+                                    }
+                                },
+                                Gene::HomoRecessive => match closest_pred.strength {
+                                    Gene::HomoDominant => {
+                                        if hunt_chance <= 5 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        }
+                                    }
+                                    Gene::Hetero => {
+                                        if hunt_chance <= 25 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        }
+                                    }
+                                    Gene::HomoRecessive => {
+                                        if hunt_chance <= 50 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        }
+                                    }
+                                },
+                            }
+                        } else {
+                            //seek closest prey
+                            self.mover.state = 1;
+                            self.mover.tick(
+                                max_speed,
+                                energy,
+                                closest_pred.mover.entity,
+                                rocks,
+                                width,
+                                height,
+                            );
+                        }
+                    }
+                }
+                Gene::Hetero => {
+                    let mut p_min_dist = 150 as f32;
+                    let mut closest_pred: Predator = Predator::default();
+                    for pred in predators
+                        .iter()
+                        .filter(|pred| !self.family.contains(&pred.get_entity().get_id()))
+                    {
+                        let distance = ((pred.mover.entity.x - self.mover.entity.x).powi(2)
+                            + (pred.mover.entity.y - self.mover.entity.y).powi(2))
+                        .sqrt();
+                        if distance < p_min_dist {
+                            p_min_dist = distance;
+                            closest_pred = pred.clone();
+                        }
+                    }
+                    if !grazers.is_empty() {
+                        //log("grazers not empty");
+                        let mut g_min_dist = 150 as f32;
+                        let mut closest_graz = Grazer::default();
+                        for graz in grazers.iter() {
+                            let distance = ((graz.mover.entity.x - self.mover.entity.x).powi(2)
+                                + (graz.mover.entity.y - self.mover.entity.y).powi(2))
+                            .sqrt();
+                            if distance < g_min_dist {
+                                g_min_dist = distance;
+                                closest_graz = graz.clone();
+                            }
+                        }
+                        if g_min_dist <= 5.0 {
+                            //hunt math
+                            let hunt_chance: u8 = rand::thread_rng().gen_range(0..100);
+                            match self.strength {
+                                Gene::HomoDominant => {
+                                    if hunt_chance <= 95 as u8 {
+                                        ded_grazs.push(closest_graz);
+                                        self.mover.energy +=
+                                            (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                                    }
+                                }
+                                Gene::Hetero => {
+                                    if hunt_chance <= 75 as u8 {
+                                        //kill grazer gain energy
+                                        ded_grazs.push(closest_graz);
+                                        self.mover.energy +=
+                                            (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                                    }
+                                }
+                                Gene::HomoRecessive => {
+                                    if hunt_chance <= 50 as u8 {
+                                        //kill grazer gain energy
+                                        ded_grazs.push(closest_graz);
+                                        self.mover.energy +=
+                                            (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                                    }
+                                }
+                            }
+                        } else {
+                            self.mover.state = 1;
+                            self.mover.tick(
+                                max_speed,
+                                energy,
+                                closest_graz.mover.entity,
+                                rocks,
+                                width,
+                                height,
+                            );
+                        }
+                    } else {
+                        // hunt the closest pred
+                        if p_min_dist <= 5.0 {
+                            //hunt math //need to update for pred v pred
+                            let hunt_chance: u8 = rand::thread_rng().gen_range(0..100);
+                            match self.strength {
+                                Gene::HomoDominant => match closest_pred.strength {
+                                    Gene::HomoDominant => {
+                                        if hunt_chance <= 50 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        } else {
+                                            self.add_family(closest_pred.get_entity().get_id());
+                                            closest_pred.add_family(self.get_entity().get_id());
+                                        }
+                                    }
+                                    Gene::Hetero => {
+                                        if hunt_chance <= 75 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        } else {
+                                            self.add_family(closest_pred.get_entity().get_id());
+                                            closest_pred.add_family(self.get_entity().get_id());
+                                        }
+                                    }
+                                    Gene::HomoRecessive => {
+                                        if hunt_chance <= 95 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        } else {
+                                            self.add_family(closest_pred.get_entity().get_id());
+                                            closest_pred.add_family(self.get_entity().get_id());
+                                        }
+                                    }
+                                },
+                                Gene::Hetero => match closest_pred.strength {
+                                    Gene::HomoDominant => {
+                                        if hunt_chance <= 25 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        } else {
+                                            self.add_family(closest_pred.get_entity().get_id());
+                                            closest_pred.add_family(self.get_entity().get_id());
+                                        }
+                                    }
+                                    Gene::Hetero => {
+                                        if hunt_chance <= 50 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        } else {
+                                            self.add_family(closest_pred.get_entity().get_id());
+                                            closest_pred.add_family(self.get_entity().get_id());
+                                        }
+                                    }
+                                    Gene::HomoRecessive => {
+                                        if hunt_chance <= 75 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        } else {
+                                            self.add_family(closest_pred.get_entity().get_id());
+                                            closest_pred.add_family(self.get_entity().get_id());
+                                        }
+                                    }
+                                },
+                                Gene::HomoRecessive => match closest_pred.strength {
+                                    Gene::HomoDominant => {
+                                        if hunt_chance <= 5 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        }
+                                    }
+                                    Gene::Hetero => {
+                                        if hunt_chance <= 25 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        }
+                                    }
+                                    Gene::HomoRecessive => {
+                                        if hunt_chance <= 50 as u8 {
+                                            self.mover.energy +=
+                                                (f64::from(closest_pred.mover.energy) * 0.9) as u32;
+                                            ded_preds.push(closest_pred);
+                                        }
+                                    }
+                                },
+                            }
+                        } else {
+                            //seek closest prey
+                            self.mover.state = 1;
+                            self.mover.tick(
+                                max_speed,
+                                energy,
+                                closest_pred.mover.entity,
+                                rocks,
+                                width,
+                                height,
+                            );
+                        }
+                    }
+                }
+                Gene::HomoRecessive => {
+                    let mut p_min_dist = 150.0 as f32;
+                    let mut closest_pred: Predator = Predator::default();
+                    for pred in predators
+                        .iter()
+                        .filter(|pred| !self.family.contains(&pred.get_entity().get_id()))
+                    {
+                        let distance = ((pred.mover.entity.x - self.mover.entity.x).powi(2)
+                            + (pred.mover.entity.y - self.mover.entity.y).powi(2))
+                        .sqrt();
+                        if distance < p_min_dist {
+                            p_min_dist = distance;
+                            closest_pred = pred.clone();
+                        }
+                    }
+
+                    self.mover.state = 3;
+                    self.mover.tick(
+                        max_speed,
+                        energy,
+                        closest_pred.mover.entity,
+                        rocks,
+                        width,
+                        height,
+                    );
+                }
+            }
+        } else if !grazers.is_empty() {
+            //log("hunt graz");
+            self.ticks_at_speed += 1;
+            //if preds empty seek grazers no matter gene
+            let mut min_dist = 150.0 as f32;
+            let mut closest_graz = Grazer::default();
+            for graz in grazers.iter() {
+                let distance = ((graz.mover.entity.x - self.mover.entity.x).powi(2)
+                    + (graz.mover.entity.y - self.mover.entity.y).powi(2))
+                .sqrt();
+                if distance < min_dist {
+                    min_dist = distance;
+                    closest_graz = graz.clone();
+                }
+            }
+            //log(format!("min dist {}", min_dist).as_str());
+            //log(format!(
+            //    "graz speed {} vs pred speed {}",
+            //    closest_graz.mover.max_speed, self.mover.max_speed
+            //)
+            //.as_str());
+            if min_dist <= 5.0 {
+                //hunt math
+                let hunt_chance: u8 = rand::thread_rng().gen_range(0..100);
+                match self.strength {
+                    Gene::HomoDominant => {
+                        if hunt_chance <= 95 as u8 {
+                            ded_grazs.push(closest_graz);
+                            self.mover.energy +=
+                                (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                        }
+                    }
+                    Gene::Hetero => {
+                        if hunt_chance <= 75 as u8 {
+                            //kill grazer gain energy
+                            ded_grazs.push(closest_graz);
+                            self.mover.energy +=
+                                (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                        }
+                    }
+                    Gene::HomoRecessive => {
+                        if hunt_chance <= 50 as u8 {
+                            //kill grazer gain energy
+                            ded_grazs.push(closest_graz);
+                            self.mover.energy +=
+                                (f64::from(closest_graz.mover.energy) * 0.9) as u32;
+                        }
+                    }
+                }
+            } else {
+                //seek closest prey
+                self.mover.state = 1;
+                self.mover.tick(
+                    max_speed,
+                    energy,
+                    closest_graz.mover.entity,
+                    rocks,
+                    width,
+                    height,
+                );
+            }
+        } else {
+            //log("wander");
+            //not mating and no possible prey around
+            self.mover.state = 2;
+
+            self.mover
+                .tick(max_speed, energy, self.mover.entity, rocks, width, height);
         }
 
-        self.mover.tick(5.0, energy, self.mover.entity);
-        ret.push(self.clone());
-        ret
+        if self.mover.energy > 0 {
+            ret.push(self.clone());
+        }
+
+        return (ret, ded_preds, ded_grazs);
     }
     fn willing_to_mate(&self, rep_energy: u32) -> bool {
         (self.mover.energy >= rep_energy) && !self.is_pregnant
     }
     pub fn get_gen_seq(&self) -> String {
         let ag = match self.agression {
-            Gene::Hetero => "Hetero agression, ",
-            Gene::HomoDominant => "Homo Dom agression, ",
-            Gene::HomoRecessive => "Homo Rec agression, ",
+            Gene::Hetero => "Aa, ",
+            Gene::HomoDominant => "AA, ",
+            Gene::HomoRecessive => "aa, ",
         }
         .to_owned();
 
         let strength = match self.strength {
-            Gene::Hetero => "Hetero strength, ",
-            Gene::HomoDominant => "Homo Dom strength, ",
-            Gene::HomoRecessive => "Homo Rec strength, ",
+            Gene::Hetero => "Ss, ",
+            Gene::HomoDominant => "SS, ",
+            Gene::HomoRecessive => "ss, ",
         }
         .to_owned();
 
         let speed = match self.speed {
-            Gene::Hetero => "Hetero speed",
-            Gene::HomoDominant => "Homo Dom speed",
-            Gene::HomoRecessive => "Homo Rec speed",
+            Gene::Hetero => "Ff",
+            Gene::HomoDominant => "FF",
+            Gene::HomoRecessive => "ff",
         }
         .to_owned();
         format!("{}{}{}", ag, strength, speed)
@@ -1317,7 +2360,7 @@ impl Predator {
         &mut self,
         max_offspring: u32,
         new_energy: u32,
-        other: Predator,
+        other:  Predator,
         energy_to_reproduce: u32,
         new_x: f32,
         new_y: f32,
@@ -1329,7 +2372,7 @@ impl Predator {
         // loop through each child
         for _ in 0..children {
             let new_genes = Predator::mate_genes(self, &other);
-            let new_pred = Predator {
+            let mut new_pred = Predator {
                 agression: new_genes.0,
                 strength: new_genes.1,
                 speed: new_genes.2,
@@ -1344,7 +2387,11 @@ impl Predator {
                 },
                 ..Default::default()
             };
-            //TODO need to add family logic
+            //TODO need to add family logic bot parents and child getting both parents
+            self.add_family(new_pred.get_entity().get_id());
+            new_pred.add_family(other.get_entity().get_id());
+            new_pred.add_family(self.get_entity().get_id());
+
             preds.push(new_pred);
         }
         self.mover.energy -= energy_to_reproduce;
@@ -1353,7 +2400,7 @@ impl Predator {
     }
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Debug)]
 #[wasm_bindgen]
 pub enum Gene {
     HomoDominant,
@@ -1412,4 +2459,43 @@ impl Gene {
 
 fn get_length(x: f32, z: f32) -> f32 {
     return f32::sqrt((x * x) + (z * z));
+}
+
+fn dot_product(endpoint1: (f32, f32), endpoint2: (f32, f32)) -> f32 {
+    endpoint1.0 * endpoint2.0 + endpoint1.1 * endpoint2.1
+}
+
+// returns true if there is an obstruction
+fn check_single_sight_line(
+    center: (f32, f32),
+    endpoint1: (f32, f32),
+    endpoint2: (f32, f32),
+    radius: f32,
+) -> bool {
+    let dot_product = dot_product(
+        (center.0 - endpoint1.0, center.1 - endpoint1.1),
+        (endpoint2.0 - endpoint1.0, endpoint2.1 - endpoint1.1),
+    );
+    let square_mag = get_length(endpoint2.0 - endpoint1.0, endpoint2.0 - endpoint1.0);
+
+    let t = dot_product / square_mag;
+
+    let point_to_test;
+    if t <= 0.0 {
+        point_to_test = endpoint1;
+    } else if t >= 1.0 {
+        point_to_test = endpoint2;
+    } else {
+        point_to_test = (
+            t * (endpoint2.0 - endpoint1.0),
+            t * (endpoint2.1 - endpoint1.1),
+        );
+    }
+
+    let vec_from_center_to_test_point = (center.0 - point_to_test.0, center.1 - point_to_test.1);
+
+    get_length(
+        vec_from_center_to_test_point.0,
+        vec_from_center_to_test_point.1,
+    ) < radius
 }
