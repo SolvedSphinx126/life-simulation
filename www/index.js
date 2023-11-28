@@ -81,11 +81,18 @@ const render = async () => {
     grazerCount.innerHTML = map.get_grazers().length;
     let plantCount = document.getElementById("plantCount");
     plantCount.innerHTML = map.get_plants().length;
-    await new Promise(r => setTimeout(r, msToWait));
-    requestAnimationFrame(render);
+
+    if (map.get_predators().length == 0 || map.get_grazers().length == 0 || map.get_plants().length == 0) {
+        document.getElementById("generate report").click();
+        map = undefined;
+        document.getElementById("file-input").value = null;
+    } else {
+        await new Promise(r => setTimeout(r, msToWait));
+        requestAnimationFrame(render);
+    }
 }
 
-const map = Map.new();
+var map;
 
 var fileInputElement = document.getElementById("1x");
 fileInputElement.addEventListener("click", e => {
@@ -137,11 +144,11 @@ genReportButton.addEventListener("click", e => {
 
    document.body.removeChild(link);
 
-    
 })
 
 var fileInputElement = document.getElementById("file-input");
 fileInputElement.addEventListener("change", e => fileInputElement.files[0].text().then((xmlText) => {
+    map = Map.new();
     var xmlText = xmlText.replace(/\s/g,"");
     var parser = new DOMParser();
     var xmlDoc = parser.parseFromString(xmlText,"text/xml");
