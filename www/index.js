@@ -85,6 +85,16 @@ const render = async () => {
     plantCount.innerHTML = map.get_plants().length;
 
     if (map.get_predators().length == 0 || map.get_grazers().length == 0 || map.get_plants().length == 0) {
+        ctx.canvas.width = ctx.canvas.clientWidth
+        ctx.canvas.height = ctx.canvas.clientHeight
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+        // perform calculation for movement functions before any entities are drawn
+
+        drawPlants();
+        drawPredators();
+        drawGrazers();
+        drawRocks();
+
         document.getElementById("generate report").click();
         var score = map.score();
         var filename = map.generate_report_file_name();
