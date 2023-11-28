@@ -8,7 +8,16 @@ extern "C" {
 
 use rand::Rng;
 use uuid::Uuid;
+use std::fs::OpenOptions;
+use std::io::Write;
+use chrono::prelude::*;
+use chrono::Local;
+use std::string::ToString;
+use std::io::prelude::*;
+use std::iter::Once;
+use std::fs::File;
 mod utils;
+use std::env;
 use wasm_bindgen::{prelude::*, JsValue};
 
 #[derive(Default)]
@@ -388,6 +397,93 @@ impl Map {
     }
     pub fn set_predator_max_offspring(&mut self, new_predator_max_offspring: u32) {
         self.predator_max_offspring = new_predator_max_offspring;
+    }
+    pub fn generate_report_file_name(&self) -> String{
+        //generate the name of the report file with the time
+        let dt = Local::now();
+	    let mut file_name: String = "SimulationReport-".to_owned();
+        
+	    file_name = file_name + &dt.hour().to_string();
+	    file_name.push_str("-");
+	    file_name = file_name + (&dt.minute().to_string());
+	    file_name.push_str("-");
+	    file_name = file_name + (&dt.second().to_string());
+	    file_name = file_name + ".txt";
+        return String::from(file_name);
+    }
+    pub fn generate_report(&self) -> String {
+
+        //the string with all the data to be returned
+        let mut data: String = "".to_string();
+    
+    	data = data + format!("SIMULATION DATA\n\n").as_str();
+    	
+    	//Print plant data
+    	data = data + format!("Total Plants: {} \n\n", self.plants.len()).as_str();
+    	
+    	for plant in self.plants.iter(){
+            data = data + format!("Plant\n").as_str();
+    		data = data + format!("ID: {}\n", plant.entity.id).as_str();
+    		data = data + format!("X Position: {}\n", plant.entity.x).as_str();
+    		data = data + format!("Y Position: {}\n", plant.entity.y).as_str();
+    		data = data + format!("Generation: {}\n", plant.entity.generation).as_str();
+    		//data.= (format!("Energy: ").as_bytes()); 
+    		data = data + format!("Diameter: {}\n", plant.diameter).as_str();
+    		data = data + format!("\n").as_str();
+    	}
+    	data = data +  (format!("\n").as_str());
+    	
+    	//Print grazer data
+    	data = data + (format!("Total Grazers: {}\n\n", self.grazers.len()).as_str());
+    	
+    	for grazer in self.grazers.iter(){
+            data = data + format!("Grazer\n").as_str();
+    		data = data + format!("ID: {}\n", grazer.mover.entity.id).as_str();
+    		data = data + format!("X Position: {}\n", grazer.mover.entity.x).as_str();
+    		data = data + format!("Y Position: {}\n", grazer.mover.entity.y).as_str();
+    		data = data + format!("Generation: {}\n", grazer.mover.entity.generation).as_str();
+    		data = data + format!("State: {}\n", grazer.mover.state).as_str();//this may change on our enum plan
+    		data = data + format!("X Velocity: {}\n", grazer.mover.velocity_x).as_str();
+    		data = data + format!("Y Velocity: {}\n", grazer.mover.velocity_y).as_str();
+    		data = data + format!("Orentation: {}\n", grazer.mover.orientation).as_str();
+    		data = data + format!("Target X Position: {}\n", grazer.mover.target_x).as_str();
+    		data = data + format!("Target Y Position: {}\n", grazer.mover.target_y).as_str();
+    		data = data + format!("Du: {}\n", grazer.mover.du).as_str();
+    		data = data + format!("Energy: {}\n", grazer.mover.energy).as_str();
+    		data = data + format!("\n").as_str();
+    	}
+    	data = data + format!("\n").as_str();
+    	
+        //Print Predators
+    	data = data + format!("Total Predators: {}\n\n", self.predators.len()).as_str();
+    	
+    	for predator in self.predators.iter(){
+            data = data + (format!("Predator\n").as_str());
+    		data = data + (format!("ID: {}\n", predator.mover.entity.id).as_str());
+    		data = data + (format!("X Position: {}\n", predator.mover.entity.x).as_str());
+    		data = data + (format!("Y Position: {}\n", predator.mover.entity.y).as_str());
+    		data = data + (format!("Generation: {}\n", predator.mover.entity.generation).as_str());
+    		data = data + (format!("State: {}\n", predator.mover.state).as_str());//this may change on our enum plan
+    		data = data + (format!("X Velocity: {}\n", predator.mover.velocity_x).as_str());
+    		data = data + (format!("Y Velocity: {}\n", predator.mover.velocity_y).as_str());
+    		data = data + (format!("Orentation: {}\n", predator.mover.orientation).as_str());
+    		data = data + (format!("Target X Position: {}\n", predator.mover.target_x).as_str());
+    		data = data + (format!("Target Y Position: {}\n", predator.mover.target_y).as_str());
+    		data = data + (format!("Du: {}\n", predator.mover.du).as_str());
+            data = data + (format!("Energy: {}\n", predator.mover.energy).as_str());
+    		data = data + (format!("Genes: {}\n", predator.get_gen_seq()).as_str());
+    		data = data + (format!("Is Pregnant: {}\n", predator.is_pregnant).as_str());
+    		data = data + (format!("Time as Friends: {}\n", predator.time_family).as_str());
+    		//print kids
+    		for child in predator.family.iter(){
+    			data = data + (format!("Friendly ID: {}\n", child).as_str());
+    		}
+    		data = data + (format!("\n").as_str());
+    	
+    	}
+    	data = data + (format!("END REPORT\n").as_str());
+    	//file auto closes as it leaves scope or this function
+        return data;
     }
 }
 
@@ -1225,23 +1321,23 @@ impl Predator {
     }
     pub fn get_gen_seq(&self) -> String {
         let ag = match self.agression {
-            Gene::Hetero => "Hetero agression, ",
-            Gene::HomoDominant => "Homo Dom agression, ",
-            Gene::HomoRecessive => "Homo Rec agression, ",
+            Gene::Hetero => "Aa, ",
+            Gene::HomoDominant => "AA, ",
+            Gene::HomoRecessive => "aa, ",
         }
         .to_owned();
 
         let strength = match self.strength {
-            Gene::Hetero => "Hetero strength, ",
-            Gene::HomoDominant => "Homo Dom strength, ",
-            Gene::HomoRecessive => "Homo Rec strength, ",
+            Gene::Hetero => "Ss, ",
+            Gene::HomoDominant => "SS, ",
+            Gene::HomoRecessive => "ss, ",
         }
         .to_owned();
 
         let speed = match self.speed {
-            Gene::Hetero => "Hetero speed",
-            Gene::HomoDominant => "Homo Dom speed",
-            Gene::HomoRecessive => "Homo Rec speed",
+            Gene::Hetero => "Ff",
+            Gene::HomoDominant => "FF",
+            Gene::HomoRecessive => "ff",
         }
         .to_owned();
         format!("{}{}{}", ag, strength, speed)
@@ -1353,7 +1449,7 @@ impl Predator {
     }
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Debug)]
 #[wasm_bindgen]
 pub enum Gene {
     HomoDominant,
