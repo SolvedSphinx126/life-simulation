@@ -86,6 +86,11 @@ const render = async () => {
 
 const map = Map.new();
 
+var fileInputElement = document.getElementById("1x");
+fileInputElement.addEventListener("click", e => {
+    setWait(1000)
+})
+
 var fileInputElement = document.getElementById("10x");
 fileInputElement.addEventListener("click", e => {
     setWait(100)
