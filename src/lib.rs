@@ -744,6 +744,7 @@ impl Mover {
         width: u32,
         height: u32,
     ) {
+        self.max_speed = f32::max(0.0, self.max_speed);
         if self.energy >= energy {
             // move here
 
