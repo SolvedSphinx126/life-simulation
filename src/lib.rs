@@ -64,16 +64,13 @@ pub struct Map {
 
 #[wasm_bindgen]
 impl Map {
-    pub fn new() -> Map 
-    {
-        Map{
+    pub fn new() -> Map {
+        Map {
             max_graz: 0,
             max_plant: 0,
             max_pred: 0,
             ..Map::default()
         }
-
-
     }
     fn get_current_tick(&self) -> u64 {
         self.current_tick
@@ -155,9 +152,7 @@ impl Map {
                 ),
                 self.get_rocks_within_vicinity(pred.mover.entity.x, pred.mover.entity.y, 150.0),
                 self.get_visible_grazers_within_vicinity(
-                    pred.mover.entity.x,
-                    pred.mover.entity.y,
-                    150.0,
+                    pred.mover.entity.x, pred.mover.entity.y, 150.0,
                 ),
                 self.predator_max_offspring,
                 self.predator_offspring_energy,
@@ -202,13 +197,13 @@ impl Map {
         });
 
         //set new maxs
-        if self.plants.len() as u32 > self.max_plant{
+        if self.plants.len() as u32 > self.max_plant {
             self.max_plant = self.plants.len() as u32;
         }
-        if self.grazers.len() as u32 > self.max_graz{
+        if self.grazers.len() as u32 > self.max_graz {
             self.max_graz = self.grazers.len() as u32;
         }
-        if self.predators.len() as u32 > self.max_pred{
+        if self.predators.len() as u32 > self.max_pred {
             self.max_pred = self.predators.len() as u32;
         }
     }
@@ -744,6 +739,7 @@ impl Mover {
         width: u32,
         height: u32,
     ) {
+        self.max_speed = f32::max(0.0, self.max_speed);
         if self.energy >= energy {
             // move here
 
@@ -912,8 +908,9 @@ impl Mover {
         result_y = char.entity.y - target.y;
 
         log("in flee");
-            (result_x, result_y) = Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
-    
+        (result_x, result_y) =
+            Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
+
         (result_x, result_y) = Mover::normalize(result_x, result_y);
         result_x = result_x * char.max_speed;
         result_y = result_y * char.max_speed;
@@ -929,8 +926,6 @@ impl Mover {
         width: u32,
         height: u32,
     ) -> &Mover {
-
-
         let mut result_x = 0.0;
         let mut result_y = 0.0;
         let mut goalSpeed = 0.0;
@@ -970,15 +965,15 @@ impl Mover {
         result_y = goal_velocity_y;
 
         log("in arrive");
-            (result_x, result_y) = Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
+        (result_x, result_y) =
+            Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
 
-            let tester = get_length(result_x, result_y);
-            if tester > char.max_speed {
-                (result_x, result_y) = Mover::normalize(result_x, result_y);
-                result_x = result_x * char.max_speed;
-                result_y = result_y * char.max_speed;
-            }
-        
+        let tester = get_length(result_x, result_y);
+        if tester > char.max_speed {
+            (result_x, result_y) = Mover::normalize(result_x, result_y);
+            result_x = result_x * char.max_speed;
+            result_y = result_y * char.max_speed;
+        }
 
         /* These 2 lines might not be necessary, maybe need testing? maybe not?
         result_x = result_x / char.ttt;
@@ -1001,7 +996,6 @@ impl Mover {
         let mut result_orien = 0.0;
         let num = rand::thread_rng().gen_range(-1.0..1.0);
 
-        
         //log(format!("WANDER max_speed {}, orientation {}, num {}", char.max_speed, char.orientation, num).as_str());
 
         result_y = char.max_speed * char.orientation.sin();
@@ -1010,8 +1004,8 @@ impl Mover {
 
         //log(format!("WANDER result x {}, result y {}, delta time{}", result_x, result_y, delta_time).as_str());
         log("in wander");
-        (result_x, result_y) = Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
-  
+        (result_x, result_y) =
+            Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
 
         return Mover::kinematicupdate(result_x, result_y, result_orien, char, delta_time);
     }
@@ -1044,49 +1038,46 @@ impl Mover {
                     radius = rock.diameter as f32 / 2.0;
                 }
             }
-            
-        if min_dist <= radius + 8.0 && min_dist > radius + 2.0 {
-            //log("close but not too close");
-            interim_dis_x = char.entity.x - closest_rock.entity.x;
-            interim_dis_y = char.entity.y - closest_rock.entity.y;
+            if min_dist <= radius + 8.0 && min_dist > radius + 2.0 {
+                //log("close but not too close");
+                interim_dis_x = char.entity.x - closest_rock.entity.x;
+                interim_dis_y = char.entity.y - closest_rock.entity.y;
 
-            let test1 = result_x * 1.2;
-            let test2 = result_y * 1.2;
+                let test1 = result_x * 1.2;
+                let test2 = result_y * 1.2;
 
-            let test3 = interim_dis_x * 0.85;
-            let test4 = interim_dis_y * 0.85;
+                let test3 = interim_dis_x * 0.85;
+                let test4 = interim_dis_y * 0.85;
 
-            result_x = test1 + test3;
-            result_y = test2 + test4;
+                result_x = test1 + test3;
+                result_y = test2 + test4;
 
-            (result_x, result_y) = Mover::normalize(result_x, result_y);
-            result_x = result_x * char.max_speed;
-            result_y = result_y * char.max_speed;
+                (result_x, result_y) = Mover::normalize(result_x, result_y);
+                result_x = result_x * char.max_speed;
+                result_y = result_y * char.max_speed;
 
-            return (result_x, result_y);
-        } else if min_dist <= radius + 2.0 {
-            //log("way too close");
-            interim_dis_x = char.entity.x - closest_rock.entity.x;
-            interim_dis_y = char.entity.y - closest_rock.entity.y;
+                return (result_x, result_y);
+            } else if min_dist <= radius + 2.0 {
+                //log("way too close");
+                interim_dis_x = char.entity.x - closest_rock.entity.x;
+                interim_dis_y = char.entity.y - closest_rock.entity.y;
 
-            let test1 = result_x * 0.85;
-            let test2 = result_y * 0.85;
+                let test1 = result_x * 0.85;
+                let test2 = result_y * 0.85;
 
-            let test3 = interim_dis_x * 2.0;
-            let test4 = interim_dis_y * 2.0;
+                let test3 = interim_dis_x * 2.0;
+                let test4 = interim_dis_y * 2.0;
 
-            result_x = test1 + test3;
-            result_y = test2 + test4;
+                result_x = test1 + test3;
+                result_y = test2 + test4;
 
-            (result_x, result_y) = Mover::normalize(result_x, result_y);
-            result_x = result_x * char.max_speed;
-            result_y = result_y * char.max_speed;
+                (result_x, result_y) = Mover::normalize(result_x, result_y);
+                result_x = result_x * char.max_speed;
+                result_y = result_y * char.max_speed;
 
-            return (result_x, result_y);
+                return (result_x, result_y);
+            }
         }
-        }
-
-
 
         if (char.entity.x + char.velocity_x) >= width as f32
             || (char.entity.x + char.velocity_x) <= 0.0
@@ -1316,12 +1307,7 @@ impl Grazer {
 
                 if min_dist > 0.0 {
                     self.mover.tick(
-                        max_speed,
-                        energy_out,
-                        closest_rock.entity,
-                        rocks,
-                        width,
-                        height,
+                        max_speed, energy_out, closest_rock.entity, rocks, width, height,
                     );
                     self.ticks_at_speed += 1;
                 }
@@ -1389,12 +1375,7 @@ impl Grazer {
             self.mover.state = 0;
             self.ticks_in_loc += 1;
             self.mover.tick(
-                max_speed,
-                energy_out,
-                self.mover.entity,
-                rocks,
-                width,
-                height,
+                max_speed, energy_out, self.mover.entity, rocks, width, height,
             );
         } else if at_plants.is_empty() && !plants.is_empty() {
             log("seek plant");
@@ -1414,12 +1395,7 @@ impl Grazer {
                 }
             }
             self.mover.tick(
-                max_speed,
-                energy_out,
-                closest_plant.entity,
-                rocks,
-                width,
-                height,
+                max_speed, energy_out, closest_plant.entity, rocks, width, height,
             );
         } else {
             self.ticks_in_loc = 0;
@@ -1427,12 +1403,7 @@ impl Grazer {
             log("wander");
             self.mover.state = 2;
             self.mover.tick(
-                max_speed,
-                energy_out,
-                self.mover.entity,
-                rocks,
-                width,
-                height,
+                max_speed, energy_out, self.mover.entity, rocks, width, height,
             );
         }
 
@@ -1513,13 +1484,7 @@ impl Plant {
         } else if self.is_max_size(max_size) && self.get_next_seed_tick() == cur_tick {
             //any seed event
             let mut copy_thingy = self.seed(
-                width,
-                height,
-                max_size,
-                seed_distance,
-                seed_number,
-                viability,
-                cur_tick,
+                width, height, max_size, seed_distance, seed_number, viability, cur_tick,
             );
             new_plants.append(&mut copy_thingy);
             let new_plant = self.clone();
@@ -1715,7 +1680,7 @@ impl Predator {
         // else if seek food (within check about genetcs and type of prey)
         // with in this check if at prey then using genetcs calulate chance fo catch and kill and gain energy
         // else wander
-        
+
         if self.mover.max_speed == 15.0 {
             match self.speed {
                 Gene::HomoDominant => {
@@ -1755,8 +1720,7 @@ impl Predator {
             }
         }
 
-
-        log(format!("max speed is {}", self.mover.max_speed ).as_str());
+        log(format!("max speed is {}", self.mover.max_speed).as_str());
         if self.is_pregnant {
             if self.get_ticks_til_birth() < cur_tick {
                 if let Some(partner) = partner {
@@ -1770,8 +1734,8 @@ impl Predator {
                     ));
                 }
             }
-        } 
-        if self.willing_to_mate(energy_to_reproduce) && !self.is_pregnant{
+        }
+        if self.willing_to_mate(energy_to_reproduce) && !self.is_pregnant {
             // if vaible candidate is found
             log("trying to find mate");
             let pred = mates
@@ -1791,15 +1755,13 @@ impl Predator {
                     //log("mating");
                     self.mate(&mut pred.clone(), cur_tick, gestation);
                 } else {
-
                     //log("seeking");
                     self.mover.state = 1;
                     self.mover
                         .tick(max_speed, energy, pred.mover.entity, rocks, width, height);
                 }
             }
-        }
-        else if !predators.is_empty() {
+        } else if !predators.is_empty() {
             self.ticks_at_speed += 1;
             //log("predators not empty");
             // if preds not empty
@@ -1812,10 +1774,7 @@ impl Predator {
                 Gene::HomoDominant => {
                     let mut p_min_dist = 150 as f32;
                     let mut closest_pred: Predator = Predator::default();
-                    for pred in predators
-                        .iter()
-                        
-                    {
+                    for pred in predators.iter() {
                         let distance = ((pred.mover.entity.x - self.mover.entity.x).powi(2)
                             + (pred.mover.entity.y - self.mover.entity.y).powi(2))
                         .sqrt();
@@ -2361,7 +2320,7 @@ impl Predator {
         &mut self,
         max_offspring: u32,
         new_energy: u32,
-        other:  Predator,
+        other: Predator,
         energy_to_reproduce: u32,
         new_x: f32,
         new_y: f32,
