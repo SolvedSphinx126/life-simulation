@@ -154,6 +154,7 @@ impl Map {
                 self.get_visible_grazers_within_vicinity(
                     pred.mover.entity.x, pred.mover.entity.y, 150.0,
                 ),
+                self.get_grazers_within_vicinity(pred.mover.entity.x, pred.mover.entity.y, 25.0),
                 self.predator_max_offspring,
                 self.predator_offspring_energy,
                 self.get_predator_gestation(),
@@ -1644,7 +1645,8 @@ impl Predator {
         mates: Vec<Predator>,
         preds: Vec<Predator>,
         rocks: Vec<Rock>,
-        grazers: Vec<Grazer>,
+        grazers: Vec<Grazer>, //sight\
+        graz: Vec<Grazer>, //smell
         max_offspring: u32,
         offspring_energy: u32,
         gestation: u64,
@@ -1664,6 +1666,7 @@ impl Predator {
         predators.retain(|obj| self.get_entity().get_id() != obj.get_entity().get_id());
         predators.retain(|pred| !self.family.contains(&pred.get_entity().get_id()));
         predators.retain(|pred| !pred.family.contains(&self.get_entity().get_id()));
+        grazers.append(graz); //Note should remove duplicates
         //(|pred| pred.get_entity().get_id() != self.get_entity().get_id());
         // if energy and not pregnant
         // has a mate
