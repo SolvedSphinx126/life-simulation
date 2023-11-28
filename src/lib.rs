@@ -1731,10 +1731,11 @@ impl Predator {
         }
 
         if self.ticks_at_speed > predator_maintain_speed {
-            if self.ticks_at_speed % 15 == 0 {
+            if self.ticks_at_speed % 15 == 0 && self.cooldown_speed == 0{
                 self.mover.max_speed = self.mover.max_speed - (1.0 / 60.0);
             }
             if self.mover.max_speed <= 0.0 {
+                self.mover.max_speed = 0.0;
                 self.cooldown_speed += 1;
             }
         }
