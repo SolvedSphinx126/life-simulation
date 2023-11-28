@@ -108,7 +108,7 @@ const render = async () => {
         completedSimulationList.sort((a, b) => b[0] - a[0]);
 
         // Clear existing list items
-        leaderboardList.innerHTML = "";
+        leaderboardList.innerHTML = "Leaderboard";
 
         // Create list items for the leaderboard
         for (let i = 0; i < Math.min(completedSimulationList.length, 10); i++) {
