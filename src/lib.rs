@@ -77,7 +77,7 @@ impl Map {
     }
     pub fn tick(&mut self) {
         //log("in map.tick");
-        log(format!("current tick is {}", self.current_tick).as_str());
+        //log(format!("current tick is {}", self.current_tick).as_str());
         let mut new_grazers = Vec::new();
         // let mut new_predators = Vec::new();
         let mut new_plants = Vec::new();
@@ -151,10 +151,10 @@ impl Map {
                     150.0,
                 ),
                 self.get_rocks_within_vicinity(pred.mover.entity.x, pred.mover.entity.y, 150.0),
-                self.get_visible_grazers_within_vicinity(
+                &mut self.get_visible_grazers_within_vicinity(
                     pred.mover.entity.x, pred.mover.entity.y, 150.0,
                 ),
-                self.get_grazers_within_vicinity(pred.mover.entity.x, pred.mover.entity.y, 25.0),
+                &mut self.get_grazers_within_vicinity(pred.mover.entity.x, pred.mover.entity.y, 25.0),
                 self.predator_max_offspring,
                 self.predator_offspring_energy,
                 self.get_predator_gestation(),
@@ -908,7 +908,7 @@ impl Mover {
         result_x = char.entity.x - target.x;
         result_y = char.entity.y - target.y;
 
-        log("in flee");
+        //log("in flee");
         (result_x, result_y) =
             Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
 
@@ -960,12 +960,12 @@ impl Mover {
         goal_velocity_x = goal_velocity_x * goalSpeed; // -14
         goal_velocity_y = goal_velocity_y * goalSpeed; // -14
 
-        log(format!("velocity ({},{})", goal_velocity_x, goal_velocity_y).as_str());
+        //log(format!("velocity ({},{})", goal_velocity_x, goal_velocity_y).as_str());
 
         result_x = goal_velocity_x;
         result_y = goal_velocity_y;
 
-        log("in arrive");
+        //log("in arrive");
         (result_x, result_y) =
             Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
 
@@ -1004,7 +1004,7 @@ impl Mover {
         result_orien = num * max_rotation;
 
         //log(format!("WANDER result x {}, result y {}, delta time{}", result_x, result_y, delta_time).as_str());
-        log("in wander");
+        //log("in wander");
         (result_x, result_y) =
             Mover::avoid(result_x, result_y, char, rocks, delta_time, width, height);
 
@@ -1026,9 +1026,9 @@ impl Mover {
         let mut min_dist = 150 as f32;
         let mut closest_rock = &Rock::default();
         let mut radius = 0.0;
-        log("in avoid");
+        //log("in avoid");
         if !rocks.is_empty() {
-            log("in rocks is not empty in avoid");
+            //log("in rocks is not empty in avoid");
             for rock in rocks.iter() {
                 let distance = ((rock.entity.x - char.entity.x).powi(2)
                     + (rock.entity.y - char.entity.y).powi(2))
@@ -1264,10 +1264,7 @@ impl Grazer {
         //to integrate sight just change the function called when tick is called in map.
         let mut new_graz = Vec::new();
         let mut ded_plants = Vec::new();
-        log(format!("energy {}", self.mover.energy).as_str());
-        if self.mover.energy > 1000 {
-            log(format!("energy {}", self.mover.energy).as_str());
-        }
+
 
         if self.mover.energy > 25 && self.ticks_at_speed < maintain_speed {
             self.mover.max_speed = max_speed;
@@ -1286,7 +1283,7 @@ impl Grazer {
 
         //first check for predators to run from
         if !predators.is_empty() {
-            log("pred not emp");
+            //log("pred not emp");
             self.ticks_in_loc = 0;
             //seek rock away from closest pred
             //set movers target
@@ -1337,7 +1334,7 @@ impl Grazer {
                 self.ticks_at_speed += 1;
             }
         } else if self.mover.energy >= energy_reproduce {
-            log("reproduce");
+            //log("reproduce");
 
             new_graz.push(self.reproduce());
         }
@@ -1345,12 +1342,12 @@ impl Grazer {
         // check if at food for plant in 5 du
         // been at plant
         else if !at_plants.is_empty() && self.ticks_in_loc != 0 {
-            log("at plant");
+            //log("at plant");
 
             //now check if tick at loc is at max
             self.mover.state = 0;
-            log(format!("tick in loc {}", self.ticks_in_loc).as_str());
-            log(format!("energy {}", self.mover.energy).as_str());
+            //log(format!("tick in loc {}", self.ticks_in_loc).as_str());
+            //log(format!("energy {}", self.mover.energy).as_str());
             if self.ticks_in_loc == 600 {
                 for plant in at_plants.iter() {
                     ded_plants.push(plant.clone());
@@ -1369,7 +1366,7 @@ impl Grazer {
         }
         // first tick at plant
         else if !at_plants.is_empty() && self.ticks_in_loc == 0 {
-            log("first at plant");
+            //log("first at plant");
 
             // just arrived at plant
             self.ticks_in_loc = 0;
@@ -1379,7 +1376,7 @@ impl Grazer {
                 max_speed, energy_out, self.mover.entity, rocks, width, height,
             );
         } else if at_plants.is_empty() && !plants.is_empty() {
-            log("seek plant");
+            //log("seek plant");
 
             //find closest plant and set arrive target
             self.ticks_in_loc = 0;
@@ -1401,7 +1398,7 @@ impl Grazer {
         } else {
             self.ticks_in_loc = 0;
             //start wandering
-            log("wander");
+            //log("wander");
             self.mover.state = 2;
             self.mover.tick(
                 max_speed, energy_out, self.mover.entity, rocks, width, height,
@@ -1645,8 +1642,8 @@ impl Predator {
         mates: Vec<Predator>,
         preds: Vec<Predator>,
         rocks: Vec<Rock>,
-        grazers: Vec<Grazer>, //sight\
-        graz: Vec<Grazer>, //smell
+        grazers: &mut Vec<Grazer>, //sight\
+        graz: &mut Vec<Grazer>, //smell
         max_offspring: u32,
         offspring_energy: u32,
         gestation: u64,
@@ -1666,7 +1663,15 @@ impl Predator {
         predators.retain(|obj| self.get_entity().get_id() != obj.get_entity().get_id());
         predators.retain(|pred| !self.family.contains(&pred.get_entity().get_id()));
         predators.retain(|pred| !pred.family.contains(&self.get_entity().get_id()));
-        grazers.append(graz); //Note should remove duplicates
+        
+        grazers.retain(|obj| {
+            !graz
+                .iter()
+                .any(|r| r.get_entity().id == obj.get_entity().id) // 
+        }); 
+        grazers.append(graz); //add smelled grazers to list of seeable grazers
+        
+
         //(|pred| pred.get_entity().get_id() != self.get_entity().get_id());
         // if energy and not pregnant
         // has a mate
@@ -1723,7 +1728,7 @@ impl Predator {
             }
         }
 
-        log(format!("max speed is {}", self.mover.max_speed).as_str());
+        //log(format!("max speed is {}", self.mover.max_speed).as_str());
         if self.is_pregnant {
             if self.get_ticks_til_birth() < cur_tick {
                 if let Some(partner) = partner {
@@ -1738,9 +1743,9 @@ impl Predator {
                 }
             }
         }
-        if self.willing_to_mate(energy_to_reproduce) && !self.is_pregnant {
+        if self.willing_to_mate(energy_to_reproduce) && !self.is_pregnant && !predators.is_empty(){
             // if vaible candidate is found
-            log("trying to find mate");
+            //log("trying to find mate");
             let pred = mates
                 .iter()
                 .filter(|p| p.willing_to_mate(energy_to_reproduce))
@@ -2215,7 +2220,6 @@ impl Predator {
             //log("wander");
             //not mating and no possible prey around
             self.mover.state = 2;
-
             self.mover
                 .tick(max_speed, energy, self.mover.entity, rocks, width, height);
         }
