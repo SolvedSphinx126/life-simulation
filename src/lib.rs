@@ -8,6 +8,7 @@ extern "C" {
 use chrono::prelude::*;
 use chrono::Local;
 use rand::Rng;
+use core::fmt;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
@@ -2443,11 +2444,11 @@ fn check_single_sight_line(
         (center.0 - endpoint1.0, center.1 - endpoint1.1),
         (endpoint2.0 - endpoint1.0, endpoint2.1 - endpoint1.1),
     );
-    let square_mag = get_length(endpoint2.0 - endpoint1.0, endpoint2.0 - endpoint1.0);
+    let square_mag = f32::powi(endpoint2.0 - endpoint1.0, 2) + f32::powi(endpoint2.1 - endpoint1.1, 2);
 
     let t = dot_product / square_mag;
-
-    let point_to_test;
+    log(format!("{}, {}", dot_product, square_mag).as_str());
+    let mut point_to_test;
     if t <= 0.0 {
         point_to_test = endpoint1;
     } else if t >= 1.0 {
@@ -2459,10 +2460,15 @@ fn check_single_sight_line(
         );
     }
 
+    point_to_test = (endpoint1.0 + point_to_test.0, endpoint1.1 + point_to_test.1);
+
     let vec_from_center_to_test_point = (center.0 - point_to_test.0, center.1 - point_to_test.1);
 
-    get_length(
+    let visible = get_length(
         vec_from_center_to_test_point.0,
         vec_from_center_to_test_point.1,
-    ) < radius
+    ) <= radius;
+
+    log(format!("{}", visible).as_str());
+    return visible;
 }
