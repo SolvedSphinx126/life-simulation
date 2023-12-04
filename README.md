@@ -14,3 +14,7 @@ Build Instructions:
   b. run `npm install`
 6. Run the web server
   a. Still in the www directory, run `npm run start`
+
+
+if you see the linker cc not found error run 'sudo apt install build-essential' and restart at cargo install cargo-generate
+
