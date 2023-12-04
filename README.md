@@ -6,7 +6,7 @@ Build Instructions:
   c. curl https://sh.rustup.rs -sSf | sh
   d. cargo install cargo-generate
   e. sudo apt install npm
-  e. npm install npm@6.14.15
+  f. npm install npm@6.14.15
 4. Build the Rust into wasm:
   a. Ensure you are in the root directory of the project
   b. run `wasm-pack build`
